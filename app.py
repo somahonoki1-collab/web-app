@@ -1,12 +1,11 @@
-from flask import Flask
+from flask import Flask, render_template
 
 app = Flask(__name__)
 
-# トップページ（/）にアクセスした時の動作
+# トップページ（/）にアクセスした時に、index.htmlを表示する
 @app.route("/")
-def hello():
-    return "<h1>Hello, Web Development!</h1><p>開発手順を覚えた！</p>"
+def home():
+    return render_template("index.html")
 
 if __name__ == "__main__":
-    # debug=True にすると、コードを書き換えた時に自動で反映されます
     app.run(debug=True)
