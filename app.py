@@ -91,5 +91,45 @@ def delete_log(log_id):
     # 削除が終わったら、home関数に自動で戻る
     return redirect(url_for('home'))
 
+# --- 6. 編集機能 ---
+@app.route("/edit/<int:log_id>", methods=["GET", "POST"])
+def edit_log(log_id):
+    log_to_edit = TrainingLog.query.get(log_id)
+    
+    if request.method == "POST":
+        # === 保存ボタンが押された時（上書き処理） ===
+        
+        new_lift = request.form.get("lift_type")
+        new_weight = float(request.form.get("weight"))
+        new_reps = int(request.form.get("reps"))
+        new_target = int(request.form.get("target_reps"))
+
+        new_max_weight = calculate_1rm(new_weight, new_reps, new_lift)
+        new_next_weight = calculate_target_weight(new_max_weight, new_target, new_lift)
+        new_max_weight = round(new_max_weight, 1)
+        new_next_weight = round(new_next_weight, 1)
+        
+        new_date_str = request.form.get("date")
+        # 文字列をPythonの日時データに変換する
+        new_date = datetime.strptime(new_date_str, '%Y-%m-%dT%H:%M')
+
+        log_to_edit.lift_type = new_lift
+        log_to_edit.weight = new_weight
+        log_to_edit.reps = new_reps
+        log_to_edit.one_rm = new_max_weight
+        log_to_edit.target_reps = new_target
+        log_to_edit.target_weight = new_next_weight
+        log_to_edit.date = new_date
+
+        # データベースの変更を確定して保存する
+        db.session.commit()     # 確定して保存
+
+        return redirect(url_for('home'))
+
+    else:
+        # === 編集ボタンが押された直後 ===
+        # まだ作っていませんが、編集専用の画面に log_to_edit を渡して開く
+        return render_template("edit.html", log=log_to_edit)
+
 if __name__ == "__main__":
     app.run(debug=True)

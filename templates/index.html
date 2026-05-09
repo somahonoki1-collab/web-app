@@ -121,9 +121,17 @@
                             <div class="log-main">{{ log.lift_type }} {{ log.weight }}kg × {{ log.reps }}回</div>
                             <div class="log-sub">次回提案: {{ log.target_weight }}kg ({{ log.target_reps }}回)</div>
                         </div>
-                        <form action="/delete/{{ log.id }}" method="POST" style="margin: 0;" onsubmit="return confirm('この記録を削除してもよろしいですか？');">
-                            <button type="submit" class="btn-delete">削除</button>
-                        </form>
+                        
+                        <!-- 🌟ここを変更！編集ボタンと削除ボタンを横に並べる -->
+                        <div style="display: flex; gap: 8px;">
+                            <!-- 編集ボタン（クリックすると /edit/5 などのURLに移動するだけ） -->
+                            <a href="/edit/{{ log.id }}" style="background: #3b82f6; color: white; padding: 8px 12px; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: bold; text-align: center; transition: background 0.2s;">編集</a>
+                            
+                            <!-- 削除ボタン（今まで通り） -->
+                            <form action="/delete/{{ log.id }}" method="POST" style="margin: 0;" onsubmit="return confirm('この記録を削除してもよろしいですか？');">
+                                <button type="submit" class="btn-delete">削除</button>
+                            </form>
+                        </div>
                     </div>
                     {% endfor %}
                 </div>
