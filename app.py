@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, redirect, url_for
 from flask_sqlalchemy import SQLAlchemy # データベース用の道具
 from datetime import datetime # 日付・時刻を扱うための道具
 
@@ -77,6 +77,19 @@ def home():
 
     # 取得した all_logs をHTMLに渡す
     return render_template("index.html", max_w=max_weight, target_w=next_weight, logs=all_logs)
+
+# --- 5. データベースから削除 ---
+@app.route("/delete/<int:log_id>", methods=["POST"])
+def delete_log(log_id):
+    # 送られてきたIDと一致する記録をデータベースから探し出す
+    log_to_delete = TrainingLog.query.get(log_id)
+    
+    if log_to_delete:
+        db.session.delete(log_to_delete) # 削除の予約
+        db.session.commit()              # 確定して保存
+        
+    # 削除が終わったら、home関数に自動で戻る
+    return redirect(url_for('home'))
 
 if __name__ == "__main__":
     app.run(debug=True)
