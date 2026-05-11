@@ -1,236 +1,107 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Workout Tracker Pro</title>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
-    
-    <!-- 🌟 新しく追加：Chart.jsの読み込み -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% extends "base.html" %}
 
-    <style>
-        body { font-family: 'Noto Sans JP', sans-serif; background-color: #0f172a; color: #f8fafc; margin: 0; padding: 20px; display: flex; justify-content: center; }
-        .container { max-width: 480px; width: 100%; }
-        
-        .app-header { text-align: center; margin-bottom: 30px; }
-        .app-title { font-size: 32px; font-weight: 900; margin: 0; background: linear-gradient(135deg, #00dbde 0%, #fc00ff 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-        .app-subtitle { color: #94a3b8; font-size: 14px; font-weight: 700; letter-spacing: 2px;}
+{% block content %}
+<div class="app-header">
+    <h1 class="app-title">LIFT LOG</h1>
+    <div class="app-subtitle" style="text-align: center; color: #94a3b8; font-size: 14px; font-weight: 700; letter-spacing: 2px;">WORKOUT TRACKER PRO</div>
+</div>
 
-        .card { background: #1e293b; border-radius: 16px; padding: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); margin-bottom: 24px; }
-
-        .form-group { margin-bottom: 20px; text-align: left; }
-        label { display: block; font-size: 13px; font-weight: 700; margin-bottom: 8px; color: #94a3b8; }
-        input, select { width: 100%; padding: 14px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; font-size: 16px; box-sizing: border-box; transition: all 0.3s ease; }
-        input:focus, select:focus { outline: none; border-color: #38bdf8; box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2); }
-
-        .btn-primary { width: 100%; padding: 16px; border: none; border-radius: 8px; background: linear-gradient(135deg, #38bdf8, #3b82f6); color: white; font-size: 16px; font-weight: 700; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; margin-top: 10px; }
-        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4); }
-
-        .result-box { background: rgba(56, 189, 248, 0.1); border-left: 4px solid #38bdf8; padding: 16px; border-radius: 8px; margin-top: 24px; text-align: left; }
-        .result-1rm { color: #94a3b8; font-size: 13px; margin: 0 0 8px 0; }
-        .result-target { color: #38bdf8; font-size: 20px; font-weight: 700; margin: 0; }
-
-        .history-title { font-size: 18px; color: #f8fafc; margin-bottom: 16px; text-align: left; }
-        
-        .tab-bar { display: flex; background: #0f172a; border-radius: 8px; padding: 4px; margin-bottom: 20px; border: 1px solid #334155; }
-        .tab-btn { flex: 1; background: transparent; color: #64748b; border: none; padding: 10px 0; font-size: 12px; font-weight: bold; border-radius: 6px; cursor: pointer; transition: all 0.2s; }
-        .tab-btn.active { background: #38bdf8; color: #0f172a; }
-        .tab-btn:hover:not(.active) { color: #f8fafc; }
-
-        .log-item { background: #0f172a; border: 1px solid #334155; padding: 16px; border-radius: 12px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; transition: all 0.3s; }
-        .log-info { flex: 1; text-align: left; }
-        .log-date { font-size: 11px; color: #64748b; margin-bottom: 6px; letter-spacing: 1px; }
-        .log-main { font-size: 16px; font-weight: bold; margin-bottom: 6px; color: #f8fafc; }
-        .log-sub { font-size: 13px; color: #38bdf8; font-weight: 700; }
-        
-        .btn-delete { background: #ef4444; color: white; border: none; border-radius: 6px; padding: 8px 12px; cursor: pointer; font-size: 12px; font-weight: bold; transition: background 0.2s; }
-        .btn-delete:hover { background: #dc2626; }
-        .empty-msg { color: #64748b; font-size: 14px; text-align: center; margin-top: 30px; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        
-        <div class="app-header">
-            <h1 class="app-title">LIFT LOG</h1>
-            <div class="app-subtitle">WORKOUT TRACKER PRO</div>
+<div class="card" style="background: #1e293b; border-radius: 16px; padding: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); margin-bottom: 24px;">
+    <form method="POST" action="/">
+        <div class="form-group" style="margin-bottom: 20px;">
+            <label style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 8px; color: #94a3b8;">📝 種目</label>
+            <select name="lift_type" required style="width: 100%; padding: 14px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; font-size: 16px;">
+                <option value="ベンチプレス">ベンチプレス</option>
+                <option value="スクワット">スクワット</option>
+                <option value="その他">その他(ダンベル等)</option>
+            </select>
         </div>
         
-        <div class="card">
-            <form method="POST" action="/">
-                <div class="form-group">
-                    <label>📝 種目</label>
-                    <select name="lift_type" required>
-                        <option value="ベンチプレス">ベンチプレス</option>
-                        <option value="スクワット">スクワット</option>
-                        <option value="その他">その他(ダンベル等)</option>
-                    </select>
-                </div>
-                
-                <div style="display: flex; gap: 15px;">
-                    <div class="form-group" style="flex: 1;">
-                        <label>🏋️ 今回の重量 (kg)</label>
-                        <input type="number" step="0.5" name="weight" required placeholder="例: 80">
-                    </div>
-                    <div class="form-group" style="flex: 1;">
-                        <label>🔄 今回の回数 (回)</label>
-                        <input type="number" name="reps" required placeholder="例: 10">
-                    </div>
-                </div>
-                
-                <div class="form-group">
-                    <label>🎯 次回の目標レップ数 (回)</label>
-                    <input type="number" name="target_reps" required placeholder="筋肥大なら8〜12回">
-                </div>
-                
-                <button type="submit" class="btn-primary">AIに重量を提案してもらう</button>
-            </form>
-
-            {% if max_w %}
-            <div class="result-box">
-                <p class="result-1rm">現在の推定1RM: {{ max_w }} kg</p>
-                <p class="result-target">💡 次回提案: {{ target_w }} kg</p>
+        <div style="display: flex; gap: 15px; margin-bottom: 20px;">
+            <div style="flex: 1;">
+                <label style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 8px; color: #94a3b8;">🏋️ 重量 (kg)</label>
+                <input type="number" step="0.5" name="weight" required placeholder="80" style="width: 100%; padding: 14px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; font-size: 16px;">
             </div>
-            {% endif %}
+            <div style="flex: 1;">
+                <label style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 8px; color: #94a3b8;">🔄 回数 (回)</label>
+                <input type="number" name="reps" required placeholder="10" style="width: 100%; padding: 14px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; font-size: 16px;">
+            </div>
         </div>
-
-        <!-- 🌟 新しく追加：グラフ描画用のカード -->
-        <div class="card" style="padding-bottom: 10px;">
-            <h3 class="history-title">📈 1RM GROWTH</h3>
-            <!-- ここにChart.jsがグラフを描画します -->
-            <canvas id="growthChart" height="200"></canvas>
+        
+        <div class="form-group" style="margin-bottom: 20px;">
+            <label style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 8px; color: #94a3b8;">🎯 次回の目標レップ数 (回)</label>
+            <input type="number" name="target_reps" required placeholder="8〜12" style="width: 100%; padding: 14px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; font-size: 16px;">
         </div>
+        
+        <button type="submit" style="width: 100%; padding: 16px; border: none; border-radius: 8px; background: linear-gradient(135deg, #38bdf8, #3b82f6); color: white; font-size: 16px; font-weight: 700; cursor: pointer;">AIに重量を提案してもらう</button>
+    </form>
 
-        <div class="card">
-            <h3 class="history-title">📜 HISTORY</h3>
-            
-            {% if logs %}
-                <div class="tab-bar">
-                    <button class="tab-btn active" onclick="filterLogs('すべて', this)">すべて</button>
-                    <button class="tab-btn" onclick="filterLogs('ベンチプレス', this)">Push</button>
-                    <button class="tab-btn" onclick="filterLogs('スクワット', this)">Legs</button>
-                    <button class="tab-btn" onclick="filterLogs('その他', this)">その他</button>
-                </div>
-
-                <div style="padding: 0;" id="log-container">
-                    {% for log in logs %}
-                    <div class="log-item" data-lift="{{ log.lift_type }}">
-                        <div class="log-info">
-                            <div class="log-date">{{ log.date.strftime('%Y-%m-%d %H:%M') }}</div>
-                            <div class="log-main">{{ log.lift_type }} {{ log.weight }}kg × {{ log.reps }}回</div>
-                            <div class="log-sub">次回提案: {{ log.target_weight }}kg ({{ log.target_reps }}回)</div>
-                        </div>
-                        
-                        <!-- 🌟ここを変更！編集ボタンと削除ボタンを横に並べる -->
-                        <div style="display: flex; gap: 8px;">
-                            <!-- 編集ボタン（クリックすると /edit/5 などのURLに移動するだけ） -->
-                            <a href="/edit/{{ log.id }}" style="background: #3b82f6; color: white; padding: 8px 12px; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: bold; text-align: center; transition: background 0.2s;">編集</a>
-                            
-                            <!-- 削除ボタン（今まで通り） -->
-                            <form action="/delete/{{ log.id }}" method="POST" style="margin: 0;" onsubmit="return confirm('この記録を削除してもよろしいですか？');">
-                                <button type="submit" class="btn-delete">削除</button>
-                            </form>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-            {% else %}
-                <p class="empty-msg">まだ記録がありません。<br>今日のトレーニングを記録しましょう！</p>
-            {% endif %}
-        </div>
+    {% if max_w %}
+    <div style="background: rgba(56, 189, 248, 0.1); border-left: 4px solid #38bdf8; padding: 16px; border-radius: 8px; margin-top: 24px;">
+        <p style="color: #94a3b8; font-size: 13px; margin: 0 0 8px 0;">現在の推定1RM: {{ max_w }} kg</p>
+        <p style="color: #38bdf8; font-size: 20px; font-weight: 700; margin: 0;">💡 次回提案: {{ target_w }} kg</p>
     </div>
+    {% endif %}
+</div>
 
-    <script>
-        // --- 🌟 グラフ描画のロジック ---
-        let myChart = null; // 現在のグラフを記憶しておく変数
+<div class="card" style="background: #1e293b; border-radius: 16px; padding: 24px; margin-bottom: 24px;">
+    <h3 style="font-size: 18px; color: #f8fafc; margin-bottom: 16px;">📈 1RM GROWTH</h3>
+    <canvas id="growthChart" height="200"></canvas>
+</div>
 
-        function drawChart(targetLift) {
-            // Python(Jinja)の履歴データを、JavaScriptの配列に変換！
-            // グラフは「左から右（古い順）」にしたいので .reverse() で順番をひっくり返します
-            const rawData = [
-                {% for log in logs %}
-                { date: "{{ log.date.strftime('%m/%d') }}", lift: "{{ log.lift_type }}", rm: {{ log.one_rm }} },
-                {% endfor %}
-            ].reverse(); 
+<div class="card" style="background: #1e293b; border-radius: 16px; padding: 24px;">
+    <h3 style="font-size: 18px; color: #f8fafc; margin-bottom: 16px;">📜 HISTORY</h3>
+    
+    {% if logs %}
+        <div style="display: flex; background: #0f172a; border-radius: 8px; padding: 4px; margin-bottom: 20px; border: 1px solid #334155;">
+            <button class="tab-btn active" onclick="filterLogs('すべて', this)" style="flex: 1; background: #38bdf8; color: #0f172a; border: none; padding: 10px 0; font-size: 12px; font-weight: bold; border-radius: 6px; cursor: pointer;">すべて</button>
+            <button class="tab-btn" onclick="filterLogs('ベンチプレス', this)" style="flex: 1; background: transparent; color: #64748b; border: none; padding: 10px 0; font-size: 12px; font-weight: bold; border-radius: 6px; cursor: pointer;">Push</button>
+            <button class="tab-btn" onclick="filterLogs('スクワット', this)" style="flex: 1; background: transparent; color: #64748b; border: none; padding: 10px 0; font-size: 12px; font-weight: bold; border-radius: 6px; cursor: pointer;">Legs</button>
+        </div>
 
-            // 選択された種目だけにデータを絞り込む
-            let filteredData = rawData;
-            if (targetLift !== 'すべて') {
-                filteredData = rawData.filter(item => item.lift === targetLift);
-            }
+        <div id="log-container">
+            {% for log in logs %}
+            <div class="log-item" data-lift="{{ log.lift_type }}" style="background: #0f172a; border: 1px solid #334155; padding: 16px; border-radius: 12px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+                <div style="text-align: left;">
+                    <div style="font-size: 11px; color: #64748b; margin-bottom: 6px;">{{ log.date.strftime('%Y-%m-%d %H:%M') }}</div>
+                    <div style="font-size: 16px; font-weight: bold; color: #f8fafc;">{{ log.lift_type }} {{ log.weight }}kg × {{ log.reps }}</div>
+                    <div style="font-size: 13px; color: #38bdf8; font-weight: 700;">次回: {{ log.target_weight }}kg</div>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <a href="/edit/{{ log.id }}" style="background: #3b82f6; color: white; padding: 8px 12px; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: bold;">編集</a>
+                    <form action="/delete/{{ log.id }}" method="POST" style="margin: 0;" onsubmit="return confirm('削除しますか？');">
+                        <button type="submit" style="background: #ef4444; color: white; border: none; border-radius: 6px; padding: 8px 12px; font-size: 12px; font-weight: bold; cursor: pointer;">削除</button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>
 
-            // X軸（日付）とY軸（1RMの重量）のデータだけを抽出
-            const labels = filteredData.map(item => item.date);
-            const dataPoints = filteredData.map(item => item.rm);
-
-            // 古いグラフが残っていたら一旦消す
-            if (myChart) {
-                myChart.destroy();
-            }
-
-            // 新しいグラフを描画！
-            const ctx = document.getElementById('growthChart').getContext('2d');
-            myChart = new Chart(ctx, {
-                type: 'line', // 折れ線グラフ
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: targetLift === 'すべて' ? '全種目の推定1RM推移' : `${targetLift} 推定1RM (kg)`,
-                        data: dataPoints,
-                        borderColor: '#38bdf8', // 線の色（サイバーブルー）
-                        backgroundColor: 'rgba(56, 189, 248, 0.2)', // グラフの下の塗りつぶし色
-                        borderWidth: 3,
-                        tension: 0.3, // 0.3にするとカクカクせず、なめらかな曲線になります
-                        pointBackgroundColor: '#fc00ff', // 点の色（ネオンピンク）
-                        pointRadius: 4,
-                        fill: true
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: { labels: { color: '#f8fafc' } }
-                    },
-                    scales: {
-                        x: { ticks: { color: '#94a3b8' }, grid: { color: '#334155' } },
-                        y: { ticks: { color: '#94a3b8' }, grid: { color: '#334155' } }
-                    }
-                }
-            });
-        }
-
-        // ページを開いた瞬間に「すべて」のグラフを描く
-        window.onload = function() {
-            {% if logs %}
-            drawChart('すべて');
-            {% endif %}
-        };
-
-        // --- 前回作ったタブ切り替えロジック（グラフ更新も追加！） ---
-        function filterLogs(targetLift, clickedButton) {
-            // 1. タブの色を切り替える
-            const allButtons = document.querySelectorAll('.tab-btn');
-            for (let i = 0; i < allButtons.length; i++) {
-                allButtons[i].classList.remove('active');
-            }
-            clickedButton.classList.add('active');
-
-            // 2. 履歴リストを絞り込む
-            const allLogs = document.querySelectorAll('.log-item');
-            for (let i = 0; i < allLogs.length; i++) {
-                const item = allLogs[i];
-                const itemLift = item.getAttribute('data-lift');
-                if (targetLift === 'すべて' || itemLift === targetLift) {
-                    item.style.display = 'flex';
-                } else {
-                    item.style.display = 'none';
-                }
-            }
-
-            // 🌟 3. グラフも選択した種目に書き換える！
-            drawChart(targetLift);
-        }
-    </script>
-</body>
-</html>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    let myChart = null;
+    function drawChart(targetLift) {
+        const rawData = [{% for log in logs %}{date:"{{log.date.strftime('%m/%d')}}",lift:"{{log.lift_type}}",rm:{{log.one_rm}}},{% endfor %}].reverse();
+        let filtered = targetLift === 'すべて' ? rawData : rawData.filter(i => i.lift === targetLift);
+        const ctx = document.getElementById('growthChart').getContext('2d');
+        if(myChart) myChart.destroy();
+        myChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: filtered.map(i => i.date),
+                datasets: [{ label: '1RM (kg)', data: filtered.map(i => i.rm), borderColor: '#38bdf8', tension: 0.3, fill: true, backgroundColor: 'rgba(56, 189, 248, 0.1)' }]
+            },
+            options: { plugins: { legend: { display: false } }, scales: { y: { ticks: { color: '#94a3b8' } }, x: { ticks: { color: '#94a3b8' } } } }
+        });
+    }
+    function filterLogs(lift, btn) {
+        document.querySelectorAll('.tab-btn').forEach(b => { b.style.background="transparent"; b.style.color="#64748b"; });
+        btn.style.background="#38bdf8"; btn.style.color="#0f172a";
+        document.querySelectorAll('.log-item').forEach(i => i.style.display = (lift==='すべて'||i.dataset.lift===lift) ? 'flex' : 'none');
+        drawChart(lift);
+    }
+    window.onload = () => drawChart('すべて');
+</script>
+{% endblock %}

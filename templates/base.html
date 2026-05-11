@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workout Tracker</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        /* 全体のダークモード設定 */
+        body { font-family: 'Noto Sans JP', sans-serif; background-color: #0f172a; color: #f8fafc; margin: 0; padding: 0; padding-bottom: 70px; }
+        .container { max-width: 480px; margin: 0 auto; padding: 20px; }
+        
+        /* スマホアプリ風の固定タスクバー（画面下部） */
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: #1e293b; border-top: 1px solid #334155; display: flex; justify-content: space-around; padding: 10px 0; z-index: 1000; }
+        .nav-item { color: #94a3b8; text-decoration: none; font-size: 12px; font-weight: bold; text-align: center; flex: 1; transition: color 0.2s; }
+        .nav-item:hover { color: #f59e0b; }
+        /* アイコン用の文字サイズ */
+        .nav-icon { display: block; font-size: 20px; margin-bottom: 4px; }
+    </style>
+</head>
+<body>
+    
+    <!-- ここに各画面の中身が入る -->
+    <div class="container">
+        {% block content %}
+        {% endblock %}
+    </div>
+
+    <!-- 全画面共通のタスクバー -->
+    <nav class="bottom-nav">
+        <!-- href の中身を app.py のルートに合わせておく -->
+        <a href="/" class="nav-item">
+            <span class="nav-icon">📝</span>
+            記録
+        </a>
+        <a href="/calendar" class="nav-item">
+            <span class="nav-icon">📅</span>
+            カレンダー
+        </a>
+        <a href="/menu" class="nav-item">
+            <span class="nav-icon">🏋️</span>
+            メニュー
+        </a>
+        <a href="/settings" class="nav-item">
+            <span class="nav-icon">⚙️</span>
+            設定
+        </a>
+    </nav>
+
+</body>
+</html>

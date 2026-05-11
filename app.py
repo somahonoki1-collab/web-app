@@ -25,7 +25,7 @@ class TrainingLog(db.Model):
 with app.app_context():
     db.create_all()
 
-# --- 今までの計算関数 ---
+# --- 計算関数 ---
 def calculate_1rm(weight, reps, lift_type):
     if lift_type == "ベンチプレス":
         return weight * (1 + reps / 40.0)
