@@ -7,11 +7,24 @@
     .training-form button { box-sizing: border-box; max-width: 100%; }
     .training-form .training-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 15px; margin-bottom: 20px; }
     .training-form .training-fields > div { min-width: 0; }
+    .quick-set { padding: 12px 0; border-bottom: 1px solid #334155; }
 </style>
 <div class="app-header">
     <h1 class="app-title">LIFT LOG</h1>
     <div class="app-subtitle" style="text-align: center; color: #94a3b8; font-size: 14px; font-weight: 700; letter-spacing: 2px;">WORKOUT TRACKER PRO</div>
 </div>
+
+{% if ongoing_sessions %}
+<section class="panel" aria-label="実施中のトレーニング">
+    <h2 style="font-size: 18px; margin-top: 0;">実施中のトレーニング</h2>
+    {% for ongoing in ongoing_sessions %}
+    <div style="margin-top: 12px;">
+        <p class="muted">{{ ongoing.started_at.strftime('%m/%d %H:%M') }} 開始</p>
+        <a class="btn" href="{{ url_for('workout_session_page', session_id=ongoing.id) }}">実施中の{{ ongoing.workout_day.name }}を再開</a>
+    </div>
+    {% endfor %}
+</section>
+{% endif %}
 
 <div class="card" style="background: #1e293b; border-radius: 16px; padding: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); margin-bottom: 24px;">
     {% if error %}
@@ -21,36 +34,35 @@
         <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
         <div class="form-group" style="margin-bottom: 20px;">
             <label style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 8px; color: #94a3b8;">📝 種目</label>
-            <select name="lift_type" required style="width: 100%; padding: 14px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; font-size: 16px;">
+            <select id="quick-exercise" name="lift_type" required style="width: 100%; padding: 14px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; font-size: 16px;">
                 {% for exercise in exercises %}
                 <option value="{{ exercise.name }}" {% if form_data.get('lift_type', exercises[0].name if exercises else '') == exercise.name %}selected{% endif %}>{{ exercise.name }}（{{ exercise.muscle_group }}）</option>
                 {% endfor %}
             </select>
         </div>
         
-        <div class="training-fields">
-            <div>
-                <label style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 8px; color: #94a3b8;">🏋️ 重量 (kg)</label>
-                <input type="number" min="0.1" max="1000" step="0.5" name="weight" required placeholder="80" value="{{ form_data.get('weight', '') }}" style="width: 100%; padding: 14px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; font-size: 16px;">
-            </div>
-            <div>
-                <label style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 8px; color: #94a3b8;">🔄 回数 (回)</label>
-                <input type="number" min="1" max="100" name="reps" required placeholder="10" value="{{ form_data.get('reps', '') }}" style="width: 100%; padding: 14px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; font-size: 16px;">
-            </div>
+        <div id="quick-guidance" aria-live="polite" style="background: #0f172a; padding: 12px; border-radius: 8px; margin-bottom: 16px;"></div>
+        <div class="two-fields" style="margin-bottom: 16px;">
+            <label class="field-label">回数の下限<input id="quick-rep-min" class="field" type="number" name="rep_min" min="1" max="100" required value="{{ form_data.get('rep_min', 8) }}"></label>
+            <label class="field-label">回数の上限<input id="quick-rep-max" class="field" type="number" name="target_reps" min="1" max="100" required value="{{ form_data.get('target_reps', 12) }}"></label>
         </div>
-        
-        <div class="form-group" style="margin-bottom: 20px;">
-            <label style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 8px; color: #94a3b8;">🎯 次回の目標レップ数 (回)</label>
-            <input type="number" min="1" max="100" name="target_reps" required placeholder="8〜12" value="{{ form_data.get('target_reps', '') }}" style="width: 100%; padding: 14px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; font-size: 16px;">
+        <input id="quick-set-count" type="hidden" name="expected_sets" value="{{ set_rows|length if set_rows else 1 }}">
+        <div id="quick-sets">
+            {% for row in set_rows %}
+            <div class="quick-set"><input class="field" type="number" name="weights" step="0.1" min="0.1" max="1000" value="{{ row.weight }}" required aria-label="{{ loop.index }}セット目の重量"><input class="field" type="number" name="reps_values" min="1" max="100" value="{{ row.reps }}" required aria-label="{{ loop.index }}セット目の回数"></div>
+            {% else %}
+            <div class="quick-set"><label class="field-label">重量 (kg)<input class="field" type="number" name="weights" step="0.1" min="0.1" max="1000" required></label><label class="field-label">回数<input class="field" type="number" name="reps_values" min="1" max="100" value="8" required></label></div>
+            {% endfor %}
         </div>
-        
-        <button type="submit" style="width: 100%; padding: 16px; border: none; border-radius: 8px; background: linear-gradient(135deg, #38bdf8, #3b82f6); color: white; font-size: 16px; font-weight: 700; cursor: pointer;">AIに重量を提案してもらう</button>
+        <button id="quick-add-set" type="button" class="btn secondary" style="margin: 12px 0;">セットを追加</button>
+        <button type="submit" class="btn" style="width: 100%;">記録を保存して次回の目安を見る</button>
     </form>
 
-    {% if max_w %}
+    {% if next_guidance %}
     <div style="background: rgba(56, 189, 248, 0.1); border-left: 4px solid #38bdf8; padding: 16px; border-radius: 8px; margin-top: 24px;">
-        <p style="color: #94a3b8; font-size: 13px; margin: 0 0 8px 0;">現在の推定1RM: {{ max_w }} kg</p>
-        <p style="color: #38bdf8; font-size: 20px; font-weight: 700; margin: 0;">💡 次回提案: {{ target_w }} kg</p>
+        <strong>{{ next_guidance.lift_type }}の次回目標</strong>
+        <p class="muted">{{ next_guidance.reason }}</p>
+        {% for target in next_guidance.targets %}<p style="color: #38bdf8;">{{ target.set_number }}セット目：{{ target.weight }}kg × {{ target.reps }}回</p>{% endfor %}
     </div>
     {% endif %}
 </div>
@@ -77,7 +89,7 @@
                 <div style="text-align: left;">
                     <div style="font-size: 11px; color: #64748b; margin-bottom: 6px;">{{ log.date.strftime('%Y-%m-%d %H:%M') }}</div>
                     <div style="font-size: 16px; font-weight: bold; color: #f8fafc;">{{ log.lift_type }} {{ log.weight }}kg × {{ log.reps }}</div>
-                    <div style="font-size: 13px; color: #38bdf8; font-weight: 700;">次回: {{ log.target_weight }}kg</div>
+                    <div style="font-size: 13px; color: #38bdf8;">{% if log.session_id or log.batch_id %}{{ log.set_number }}セット目 · {% endif %}推定1RM: {{ log.one_rm }}kg</div>
                 </div>
                 <div style="display: flex; gap: 8px;">
                     <a href="/edit/{{ log.id }}" style="background: #3b82f6; color: white; padding: 8px 12px; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: bold;">編集</a>
@@ -92,6 +104,94 @@
     {% endif %}
 </div>
 
+<script>
+(() => {
+    const guides = {{ guidance_by_exercise|tojson }};
+    const existingRows = {{ set_rows|tojson }};
+    const select = document.getElementById('quick-exercise');
+    const container = document.getElementById('quick-sets');
+    const panel = document.getElementById('quick-guidance');
+    const low = document.getElementById('quick-rep-min');
+    const high = document.getElementById('quick-rep-max');
+    const count = document.getElementById('quick-set-count');
+    let requestNumber = 0;
+    const element = (tag, text, className) => {
+        const node = document.createElement(tag);
+        if (text !== undefined) node.textContent = text;
+        if (className) node.className = className;
+        return node;
+    };
+    function renderGuide(guide) {
+        panel.replaceChildren(element('strong', guide.previous_date ? `前回（${guide.previous_date}）と今回の目標` : '今回の目標'));
+        const table = element('table', undefined, 'target-table');
+        const head = element('tr');
+        ['セット', '前回', '今回の目標'].forEach(text => head.append(element('th', text)));
+        table.append(head);
+        const previous = new Map(guide.previous.map(log => [log.set_number, log]));
+        const maxNumber = Math.max(guide.targets.length, ...guide.previous.map(log => log.set_number));
+        for (let number = 1; number <= maxNumber; number++) {
+            const last = previous.get(number);
+            const target = guide.targets[number - 1];
+            const row = element('tr');
+            row.append(element('td', number), element('td', last ? `${last.weight}kg × ${last.reps}` : '未記録'), element('td', target ? `${target.weight === null ? '重量を選択' : target.weight + 'kg'} × ${target.reps}` : '対象外'));
+            table.append(row);
+        }
+        panel.append(table, element('p', guide.reason, 'muted'));
+    }
+    function renumber() {
+        container.querySelectorAll('.quick-set').forEach((row, index) => {
+            row.querySelector('strong').textContent = `${index + 1}セット目`;
+            row.querySelectorAll('input').forEach(input => input.setAttribute('aria-label', `${index + 1}セット目の${input.name === 'weights' ? '重量' : '回数'}`));
+            row.querySelector('button').disabled = container.children.length <= 1;
+        });
+        count.value = container.children.length;
+        document.getElementById('quick-add-set').disabled = container.children.length >= 20;
+    }
+    function addRow(values = {}) {
+        const row = element('div', undefined, 'quick-set');
+        row.append(element('strong', 'セット'));
+        const grid = element('div', undefined, 'two-fields');
+        grid.style.marginTop = '8px';
+        [['weights', '重量 (kg)', values.weight ?? '', '0.1', '1000'], ['reps_values', '回数', values.reps ?? low.value, '1', '100']].forEach(([name, labelText, value, min, max]) => {
+            const label = element('label', labelText, 'field-label');
+            const input = element('input', undefined, 'field');
+            Object.assign(input, { type: 'number', name, value, min, max, step: name === 'weights' ? '0.1' : '1', required: true });
+            label.append(input); grid.append(label);
+        });
+        const remove = element('button', 'このセットを外す', 'btn secondary');
+        remove.type = 'button'; remove.style.marginTop = '6px';
+        remove.addEventListener('click', () => { if (container.children.length > 1) { row.remove(); renumber(); refreshGuide(); } });
+        row.append(grid, remove); container.append(row); renumber();
+    }
+    async function refreshGuide() {
+        const current = ++requestNumber;
+        const recipe = guides[select.value];
+        const params = new URLSearchParams({ sets: count.value, rep_min: low.value, rep_max: high.value });
+        try {
+            const response = await fetch(`/guidance/${recipe.exercise_id}?${params}`);
+            const guide = await response.json();
+            if (current !== requestNumber) return;
+            if (!response.ok) { panel.replaceChildren(element('p', guide.error, 'muted')); return; }
+            renderGuide(guide);
+        } catch (_) { if (current === requestNumber) panel.replaceChildren(element('p', '目標を読み込めませんでした。ページを再読み込みしてください。', 'muted')); }
+    }
+    function chooseExercise(preserve = false) {
+        ++requestNumber;
+        const guide = guides[select.value];
+        if (!preserve) { low.value = guide.rep_min; high.value = guide.rep_max; }
+        container.replaceChildren();
+        (preserve ? existingRows : guide.targets).forEach(addRow);
+        renderGuide(guide);
+        if (preserve) refreshGuide();
+    }
+    select.addEventListener('change', () => chooseExercise());
+    low.addEventListener('change', refreshGuide); high.addEventListener('change', refreshGuide);
+    document.getElementById('quick-add-set').addEventListener('click', () => {
+        if (container.children.length < 20) { addRow({ weight: container.lastElementChild.querySelector('[name="weights"]').value }); refreshGuide(); }
+    });
+    chooseExercise(existingRows.length > 0);
+})();
+</script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     let myChart = null;

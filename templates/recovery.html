@@ -6,6 +6,29 @@
     <p style="text-align: center; color: #94a3b8; font-size: 14px;">部位ごとの回復日数を記録し、直近の傾向を次の予定候補に反映します。</p>
 </div>
 
+<section class="panel" aria-label="鍛えた部位の回復チェック">
+    <h2 style="font-size: 18px; margin-top: 0;">鍛えた部位の回復チェック</h2>
+    <p class="muted">セット記録から部位とトレーニング日を用意しています。今日の状態を選んでください。</p>
+    {% for check in pending_checks %}
+    <div style="background: #0f172a; border-radius: 10px; padding: 12px; margin-top: 12px;">
+        <strong>{{ check.muscle_group }}</strong>
+        <p class="muted">トレーニング日：{{ check.trained_date.isoformat() }}{% if check.last_sore_date %}<br>{{ check.last_sore_date.isoformat() }}：まだ筋肉痛がある{% endif %}</p>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+            <form method="POST" action="{{ url_for('update_recovery_check', check_id=check.id) }}">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="status" value="sore">
+                <button class="btn secondary" type="submit">まだ筋肉痛がある</button>
+            </form>
+            <form method="POST" action="{{ url_for('update_recovery_check', check_id=check.id) }}">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="status" value="recovered">
+                <button class="btn" type="submit">今日抜けた</button>
+            </form>
+        </div>
+    </div>
+    {% else %}<p class="muted">確認待ちの部位はありません。トレーニングを記録すると、ここに部位が表示されます。</p>{% endfor %}
+</section>
+
+<details>
+<summary class="muted" style="cursor: pointer; margin-bottom: 12px;">過去の回復日を手動で登録</summary>
 <section class="card" style="background: #1e293b; border-radius: 16px; padding: 18px; margin-bottom: 20px;">
     <h2 style="font-size: 18px; margin-top: 0;">回復した日を記録</h2>
     <form method="POST" action="{{ url_for('recovery_page') }}">
@@ -22,6 +45,7 @@
     </form>
     <p style="color: #94a3b8; font-size: 12px; margin-bottom: 0;">回復日数は直近の記録を強く反映する加重平均（新しい記録の重み 1.0、1件古くなるごとに0.7倍）で計算します。</p>
 </section>
+</details>
 
 <section class="card" style="background: #1e293b; border-radius: 16px; padding: 18px; margin-bottom: 20px;">
     <h2 style="font-size: 18px; margin-top: 0;">部位ごとの目安</h2>

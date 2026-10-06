@@ -13,7 +13,8 @@ os.environ["FLASK_SECRET_KEY"] = "isolated-functional-check-key"
 
 from app import (
     app, db, Exercise, MenuItem, MuscleRecoveryLog, TrainingLog, User,
-    WorkoutDay, WorkoutSchedule, WorkoutSession, recovery_estimates,
+    WorkoutDay, WorkoutSchedule, WorkoutSession, RecoveryCheck, TrainingBatch,
+    recovery_estimates, previous_exercise_logs,
 )
 
 
@@ -252,6 +253,159 @@ with app.app_context():
 """
             result = subprocess.run([sys.executable, "-c", code], env=environment, capture_output=True, text=True)
             self.assertEqual(result.returncode, 0, result.stderr)
+
+    def quick_sets(self, reps=(12, 10, 8), weights=(80, 80, 80), **extra):
+        return self.post("/", lift_type="ベンチプレス", weights=list(weights),
+            reps_values=list(reps), rep_min=8, target_reps=12, expected_sets=3, **extra)
+
+    def test_quick_sets_share_progression_and_previous_with_workout(self):
+        user_id, exercise_id, day_id = self.menu()
+        response = self.quick_sets()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(TrainingBatch.query.count(), 1)
+        logs = TrainingLog.query.order_by(TrainingLog.set_number).all()
+        self.assertEqual([log.target_reps for log in logs], [12, 11, 9])
+        self.assertEqual([log.target_weight for log in logs], [80, 80, 80])
+        guide = self.client.get(f"/guidance/{exercise_id}").get_json()
+        self.assertEqual([row["reps"] for row in guide["previous"]], [12, 10, 8])
+        self.assertEqual([row["reps"] for row in guide["targets"]], [12, 11, 9])
+        workout_id = self.start(day_id)
+        page = self.client.get(f"/workouts/{workout_id}").get_data(as_text=True)
+        for expected in ("80.0kg × 12回", "80.0kg × 11回", "80.0kg × 9回", "前回の全セット"):
+            self.assertIn(expected, page)
+        self.assertEqual(RecoveryCheck.query.filter_by(user_id=user_id).count(), 1)
+
+    def test_quick_sets_increase_only_complete_uniform_sets_and_redirect(self):
+        _, exercise_id, _ = self.menu()
+        response = self.quick_sets(reps=(12, 12, 12), follow=False)
+        self.assertEqual(response.status_code, 302)
+        self.client.get(response.location)
+        self.client.get(response.location)
+        self.assertEqual(TrainingLog.query.count(), 3)
+        guide = self.client.get(f"/guidance/{exercise_id}").get_json()
+        self.assertTrue(guide["increased"])
+        self.assertEqual([(row["weight"], row["reps"]) for row in guide["targets"]], [(82, 8)] * 3)
+        self.quick_sets(reps=(12, 12), weights=(80, 80))
+        self.assertFalse(self.client.get(f"/guidance/{exercise_id}").get_json()["increased"])
+        self.quick_sets(reps=(12, 12, 12), weights=(80, 75, 70))
+        guide = self.client.get(f"/guidance/{exercise_id}").get_json()
+        self.assertFalse(guide["increased"])
+        self.assertEqual([row["weight"] for row in guide["targets"]], [80, 75, 70])
+
+    def test_quick_invalid_set_saves_nothing_and_guidance_validates_owner(self):
+        _, exercise_id, _ = self.menu()
+        self.assertEqual(self.quick_sets(weights=(80, "bad", 80)).status_code, 400)
+        self.assertEqual(TrainingLog.query.count(), 0)
+        self.assertEqual(TrainingBatch.query.count(), 0)
+        for query in ("sets=0", "sets=21", "rep_min=13&rep_max=12", "rep_max=abc"):
+            self.assertEqual(self.client.get(f"/guidance/{exercise_id}?{query}").status_code, 400)
+        other = app.test_client()
+        self.register("second", other)
+        self.assertEqual(other.get(f"/guidance/{exercise_id}").status_code, 404)
+
+    def test_edit_recomputes_all_set_targets_using_range_upper(self):
+        _, _, _ = self.menu()
+        self.quick_sets(reps=(12, 12, 10))
+        log = TrainingLog.query.filter_by(set_number=3).one()
+        page = self.client.get(f"/edit/{log.id}").get_data(as_text=True)
+        self.assertIn('name="target_reps" required  value="12"', page)
+        self.post(f"/edit/{log.id}", lift_type=log.lift_type, weight=80, reps=12,
+            target_reps=12, date=log.date.strftime("%Y-%m-%dT%H:%M"))
+        self.assertEqual([(row.target_weight, row.target_reps) for row in TrainingLog.query.all()], [(82, 8)] * 3)
+        self.post(f"/delete/{log.id}")
+        self.assertEqual([row.target_weight for row in TrainingLog.query.all()], [80, 80])
+
+    def test_previous_legacy_and_open_or_future_sessions_are_not_grouped(self):
+        user_id, exercise_id, day_id = self.menu()
+        for number in range(3):
+            db.session.add(TrainingLog(user_id=user_id, lift_type="ベンチプレス", weight=70,
+                reps=12, one_rm=91, target_reps=12, target_weight=70, set_number=1,
+                date=datetime.now()-timedelta(days=1)))
+        db.session.commit()
+        self.assertEqual(len(previous_exercise_logs(user_id, "ベンチプレス")), 1)
+        current_id = self.start(day_id)
+        self.record_set(current_id, exercise_id, 1)
+        self.assertEqual(previous_exercise_logs(user_id, "ベンチプレス")[0].weight, 70)
+        future = TrainingLog(user_id=user_id, lift_type="ベンチプレス", weight=100, reps=8,
+            one_rm=120, target_reps=9, target_weight=100, date=datetime.now()+timedelta(days=1))
+        db.session.add(future)
+        db.session.commit()
+        page = self.client.get(f"/workouts/{current_id}").get_data(as_text=True)
+        self.assertIn("今回の目安：70.0kg × 12回", page)
+        self.assertNotIn("今回の目安：100.0kg", page)
+
+    def test_home_resume_preserves_started_menu_and_saved_set(self):
+        _, exercise_id, day_id = self.menu()
+        workout_id = self.start(day_id)
+        self.record_set(workout_id, exercise_id, 1, reps=10)
+        self.assertIn("実施中のPushを再開", self.client.get("/").get_data(as_text=True))
+        self.start(day_id)
+        self.assertEqual(WorkoutSession.query.count(), 1)
+        self.post(f"/menu/items/{MenuItem.query.one().id}/delete")
+        page = self.client.get(f"/workouts/{workout_id}").get_data(as_text=True)
+        self.assertIn("メニュー 3セット", page)
+        self.assertIn("記録済み：80.0kg × 10回", page)
+        self.assertEqual(self.record_set(workout_id, exercise_id, 2).status_code, 200)
+        self.post(f"/workouts/{workout_id}/finish")
+        self.assertNotIn("実施中のPushを再開", self.client.get("/").get_data(as_text=True))
+
+    def test_recovery_buttons_update_calendar_and_samples_once(self):
+        user_id, _, day_id = self.menu()
+        self.quick_sets()
+        check = RecoveryCheck.query.one()
+        # Simulate a workout three days ago; no real user data is involved.
+        trained = date.today() - timedelta(days=3)
+        check.trained_date = trained
+        for log in TrainingLog.query.all():
+            log.date = datetime.combine(trained, datetime.min.time())
+        db.session.commit()
+        page = self.client.get("/recovery").get_data(as_text=True)
+        self.assertIn("まだ筋肉痛がある", page)
+        self.assertIn("今日抜けた", page)
+        self.post(f"/recovery/checks/{check.id}", status="sore")
+        self.assertEqual(check.last_sore_date, date.today())
+        self.assertEqual(MuscleRecoveryLog.query.count(), 0)
+        calendar = self.client.get("/calendar").get_data(as_text=True)
+        self.assertIn((date.today()+timedelta(days=1)).isoformat(), calendar)
+        self.post(f"/recovery/checks/{check.id}", status="recovered")
+        self.post(f"/recovery/checks/{check.id}", status="recovered")
+        self.assertEqual(MuscleRecoveryLog.query.count(), 1)
+        self.assertEqual(recovery_estimates(user_id)["胸"], {"days": 3.0, "samples": 1})
+        log_id = MuscleRecoveryLog.query.one().id
+        self.post(f"/recovery/{log_id}/delete")
+        db.session.refresh(check)
+        self.assertIsNone(check.recovery_log_id)
+        self.assertIn("今日抜けた", self.client.get("/recovery").get_data(as_text=True))
+
+    def test_completed_workout_auto_recovery_checks_only_trained_groups(self):
+        user_id, exercise_id, day_id = self.menu()
+        self.post("/exercises", name="ショルダープレス", muscle_group="肩")
+        shoulder = Exercise.query.filter_by(user_id=user_id, muscle_group="肩").one()
+        self.post(f"/menu/{day_id}/items", exercise_id=shoulder.id, sets=2, rep_min=8, rep_max=12)
+        workout_id = self.start(day_id)
+        self.record_set(workout_id, exercise_id, 1)
+        self.client.get("/recovery")
+        self.assertEqual(RecoveryCheck.query.count(), 0)
+        self.post(f"/workouts/{workout_id}/finish")
+        self.assertEqual([row.muscle_group for row in RecoveryCheck.query.all()], ["胸"])
+        self.post(f"/workouts/{workout_id}/finish")
+        self.assertEqual(RecoveryCheck.query.count(), 1)
+
+    def test_recovery_check_authorization_csrf_and_manual_upsert(self):
+        self.menu()
+        self.quick_sets()
+        check = RecoveryCheck.query.one()
+        self.assertEqual(self.client.post(f"/recovery/checks/{check.id}", data={"status": "sore"}).status_code, 400)
+        self.assertEqual(self.post(f"/recovery/checks/{check.id}", status="invalid").status_code, 400)
+        other = app.test_client()
+        self.register("second", other)
+        self.assertNotIn("今日抜けた", other.get("/recovery").get_data(as_text=True))
+        self.assertEqual(self.post(f"/recovery/checks/{check.id}", client=other, status="recovered").status_code, 404)
+        for _ in range(2):
+            self.post("/recovery", muscle_group="胸", trained_date=date.today().isoformat(), recovered_date=date.today().isoformat())
+        self.assertEqual(MuscleRecoveryLog.query.count(), 1)
+        db.session.refresh(check)
+        self.assertEqual(check.recovery_log_id, MuscleRecoveryLog.query.one().id)
 
 
 if __name__ == "__main__":

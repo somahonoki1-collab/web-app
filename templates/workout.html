@@ -10,6 +10,7 @@
 <section class="card" style="background: #14532d; border-radius: 12px; padding: 16px; margin-bottom: 18px; color: #dcfce7;">
     トレーニング完了：{{ workout_session.completed_at.strftime('%Y-%m-%d %H:%M') }}
 </section>
+<p><a class="btn" href="{{ url_for('recovery_page') }}">鍛えた部位の回復状態を記録</a></p>
 {% else %}
 <section class="card" style="background: #1e293b; border-radius: 16px; padding: 18px; margin-bottom: 20px;">
     <p style="color: #cbd5e1; margin-top: 0;">前回の同じ種目の記録を参考に、各セットを記録してください。重量の提案は現時点では目安です。</p>
@@ -21,12 +22,16 @@
 {% set item = entry.item %}
 <section class="card" style="background: #1e293b; border-radius: 16px; padding: 18px; margin-bottom: 16px;">
     <h2 style="font-size: 20px; margin: 0 0 6px;">{{ item.exercise.name }}</h2>
-    <p style="color: #94a3b8; margin: 0 0 12px;">{{ item.exercise.muscle_group }} · メニュー {{ item.sets }}セット × {{ item.rep_min }}〜{{ item.rep_max }}回</p>
+    <p style="color: #94a3b8; margin: 0 0 12px;">{{ item.muscle_group }} · メニュー {{ item.sets }}セット × {{ item.rep_min }}〜{{ item.rep_max }}回</p>
 
     {% if entry.previous_log %}
     <div style="background: #0f172a; border-radius: 8px; padding: 12px; margin-bottom: 14px; color: #cbd5e1; font-size: 13px;">
         前回：{{ entry.previous_log.date.strftime('%Y-%m-%d') }} · {{ entry.previous_log.weight }}kg × {{ entry.previous_log.reps }}回
         {% if entry.target_weight %}<br>今回の目安：{{ entry.target_weight }}kg × {{ entry.next_reps }}回<br>{{ entry.target_reason }}{% endif %}
+        <table class="target-table" aria-label="{{ item.exercise.name }}の前回の全セット">
+            <thead><tr><th>前回のセット</th><th>重量</th><th>回数</th></tr></thead>
+            <tbody>{% for previous in entry.previous_sets %}<tr><td>{{ previous.set_number }}セット目</td><td>{{ previous.weight }}kg</td><td>{{ previous.reps }}回</td></tr>{% endfor %}</tbody>
+        </table>
     </div>
     {% else %}
     <div style="background: #0f172a; border-radius: 8px; padding: 12px; margin-bottom: 14px; color: #cbd5e1; font-size: 13px;">前回記録がありません。無理のない重量を選んでください。</div>
@@ -34,8 +39,10 @@
 
     {% for set_number in range(1, item.sets + 1) %}
     {% set saved = entry.completed_sets.get(set_number) %}
+    {% set target = entry.targets[set_number - 1] %}
     <div style="border-top: 1px solid #334155; padding: 12px 0;">
         <strong>{{ set_number }}セット目</strong>
+        <p class="muted">今回の目標：{% if target.weight %}{{ target.weight }}kg{% else %}重量を選択{% endif %} × {{ target.reps }}回</p>
         {% if saved %}
         <span style="color: #86efac; margin-left: 8px;">記録済み：{{ saved.weight }}kg × {{ saved.reps }}回</span>
         {% elif workout_session.completed_at %}
@@ -46,12 +53,12 @@
             <input type="hidden" name="exercise_id" value="{{ item.exercise_id }}">
             <input type="hidden" name="set_number" value="{{ set_number }}">
             <input type="hidden" name="lift_type" value="{{ item.exercise.name }}">
-            <input type="hidden" name="target_reps" value="{{ entry.next_reps }}">
+            <input type="hidden" name="target_reps" value="{{ target.reps }}">
             <label style="flex: 1; min-width: 90px; color: #94a3b8; font-size: 12px;">重量 (kg)
-                <input type="number" name="weight" min="0.1" max="1000" step="0.1" value="{{ entry.target_weight if entry.target_weight else '' }}" placeholder="重量" required style="width: 100%; box-sizing: border-box; padding: 9px; border-radius: 7px; border: 1px solid #334155; background: #0f172a; color: #fff;">
+                <input type="number" name="weight" min="0.1" max="1000" step="0.1" value="{{ target.weight if target.weight else '' }}" placeholder="重量" required style="width: 100%; box-sizing: border-box; padding: 9px; border-radius: 7px; border: 1px solid #334155; background: #0f172a; color: #fff;">
             </label>
             <label style="flex: 1; min-width: 80px; color: #94a3b8; font-size: 12px;">回数
-                <input type="number" name="reps" min="1" max="100" value="{{ entry.next_reps }}" required style="width: 100%; box-sizing: border-box; padding: 9px; border-radius: 7px; border: 1px solid #334155; background: #0f172a; color: #fff;">
+                <input type="number" name="reps" min="1" max="100" value="{{ target.reps }}" required style="width: 100%; box-sizing: border-box; padding: 9px; border-radius: 7px; border: 1px solid #334155; background: #0f172a; color: #fff;">
             </label>
             <button type="submit" style="padding: 10px 14px; border: 0; border-radius: 7px; background: #38bdf8; color: #0f172a; font-weight: 700; cursor: pointer;">記録</button>
         </form>
