@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="app-header">
+    <h1 style="font-size: 28px; font-weight: 900; text-align: center;">{{ workout_session.workout_day.name }} WORKOUT</h1>
+    <p style="text-align: center; color: #94a3b8; font-size: 14px;">開始：{{ workout_session.started_at.strftime('%Y-%m-%d %H:%M') }}</p>
+</div>
+
+{% if workout_session.completed_at %}
+<section class="card" style="background: #14532d; border-radius: 12px; padding: 16px; margin-bottom: 18px; color: #dcfce7;">
+    トレーニング完了：{{ workout_session.completed_at.strftime('%Y-%m-%d %H:%M') }}
+</section>
+{% else %}
+<section class="card" style="background: #1e293b; border-radius: 16px; padding: 18px; margin-bottom: 20px;">
+    <p style="color: #cbd5e1; margin-top: 0;">前回の同じ種目の記録を参考に、各セットを記録してください。重量の提案は現時点では目安です。</p>
+    {% if workout_session.schedule %}<p style="color: #94a3b8; font-size: 13px;">予定日：{{ workout_session.schedule.scheduled_date.strftime('%Y-%m-%d') }}</p>{% endif %}
+</section>
+{% endif %}
+
+{% for entry in workout_items %}
+{% set item = entry.item %}
+<section class="card" style="background: #1e293b; border-radius: 16px; padding: 18px; margin-bottom: 16px;">
+    <h2 style="font-size: 20px; margin: 0 0 6px;">{{ item.exercise.name }}</h2>
+    <p style="color: #94a3b8; margin: 0 0 12px;">{{ item.exercise.muscle_group }} · メニュー {{ item.sets }}セット × {{ item.rep_min }}〜{{ item.rep_max }}回</p>
+
+    {% if entry.previous_log %}
+    <div style="background: #0f172a; border-radius: 8px; padding: 12px; margin-bottom: 14px; color: #cbd5e1; font-size: 13px;">
+        前回：{{ entry.previous_log.date.strftime('%Y-%m-%d') }} · {{ entry.previous_log.weight }}kg × {{ entry.previous_log.reps }}回
+        {% if entry.target_weight %}<br>今回の目安：{{ entry.target_weight }}kg × {{ entry.next_reps }}回<br>{{ entry.target_reason }}{% endif %}
+    </div>
+    {% else %}
+    <div style="background: #0f172a; border-radius: 8px; padding: 12px; margin-bottom: 14px; color: #cbd5e1; font-size: 13px;">前回記録がありません。無理のない重量を選んでください。</div>
+    {% endif %}
+
+    {% for set_number in range(1, item.sets + 1) %}
+    {% set saved = entry.completed_sets.get(set_number) %}
+    <div style="border-top: 1px solid #334155; padding: 12px 0;">
+        <strong>{{ set_number }}セット目</strong>
+        {% if saved %}
+        <span style="color: #86efac; margin-left: 8px;">記録済み：{{ saved.weight }}kg × {{ saved.reps }}回</span>
+        {% elif workout_session.completed_at %}
+        <span style="color: #94a3b8; margin-left: 8px;">未記録</span>
+        {% else %}
+        <form action="{{ url_for('add_workout_set', session_id=workout_session.id) }}" method="POST" style="display: flex; flex-wrap: wrap; gap: 8px; align-items: end; margin-top: 8px;">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="exercise_id" value="{{ item.exercise_id }}">
+            <input type="hidden" name="set_number" value="{{ set_number }}">
+            <input type="hidden" name="lift_type" value="{{ item.exercise.name }}">
+            <input type="hidden" name="target_reps" value="{{ entry.next_reps }}">
+            <label style="flex: 1; min-width: 90px; color: #94a3b8; font-size: 12px;">重量 (kg)
+                <input type="number" name="weight" min="0.1" max="1000" step="0.1" value="{{ entry.target_weight if entry.target_weight else '' }}" placeholder="重量" required style="width: 100%; box-sizing: border-box; padding: 9px; border-radius: 7px; border: 1px solid #334155; background: #0f172a; color: #fff;">
+            </label>
+            <label style="flex: 1; min-width: 80px; color: #94a3b8; font-size: 12px;">回数
+                <input type="number" name="reps" min="1" max="100" value="{{ entry.next_reps }}" required style="width: 100%; box-sizing: border-box; padding: 9px; border-radius: 7px; border: 1px solid #334155; background: #0f172a; color: #fff;">
+            </label>
+            <button type="submit" style="padding: 10px 14px; border: 0; border-radius: 7px; background: #38bdf8; color: #0f172a; font-weight: 700; cursor: pointer;">記録</button>
+        </form>
+        {% endif %}
+    </div>
+    {% endfor %}
+</section>
+{% endfor %}
+
+{% if not workout_session.completed_at %}
+<form action="{{ url_for('finish_workout', session_id=workout_session.id) }}" method="POST" onsubmit="return confirm('このトレーニングを完了にしますか？');" style="margin: 20px 0;">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" style="width: 100%; padding: 14px; border: 0; border-radius: 9px; background: #22c55e; color: #052e16; font-weight: 800; cursor: pointer;">トレーニングを完了</button>
+</form>
+{% endif %}
+
+<p style="text-align: center; margin: 22px 0;"><a href="{{ url_for('calendar_page') }}" style="color: #38bdf8;">カレンダーへ戻る</a> · <a href="{{ url_for('menu_page') }}" style="color: #38bdf8;">メニューを見る</a></p>
+{% endblock %}

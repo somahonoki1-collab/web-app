@@ -1,0 +1,6 @@
+__pycache__/
+*.py[cod]
+instance/*.db
+instance/*.sqlite
+instance/*.sqlite3
+instance/secret_key

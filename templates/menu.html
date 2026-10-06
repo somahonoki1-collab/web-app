@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="app-header">
+    <h1 style="font-size: 28px; font-weight: 900; text-align: center;">MY TRAINING MENU</h1>
+    <p style="text-align: center; color: #94a3b8; font-size: 14px;">種目を登録して、Push・Pull・Legsのメニューを作成します。</p>
+</div>
+
+<section class="card" style="background: #1e293b; border-radius: 16px; padding: 20px; margin-bottom: 20px;">
+    <h2 style="font-size: 18px; margin-top: 0;">種目を追加</h2>
+    <form action="{{ url_for('add_exercise') }}" method="POST">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+        <label for="exercise-name" style="display: block; color: #94a3b8; font-size: 13px; margin-bottom: 8px;">種目名</label>
+        <input id="exercise-name" name="name" maxlength="80" required placeholder="例：ラットプルダウン" style="width: 100%; box-sizing: border-box; padding: 12px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; margin-bottom: 14px;">
+        <label for="muscle-group" style="display: block; color: #94a3b8; font-size: 13px; margin-bottom: 8px;">主に鍛える部位</label>
+        <select id="muscle-group" name="muscle_group" required style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; margin-bottom: 16px;">
+            {% for group in muscle_groups %}<option value="{{ group }}">{{ group }}</option>{% endfor %}
+        </select>
+        <button type="submit" style="width: 100%; padding: 13px; border: 0; border-radius: 8px; background: #38bdf8; color: #0f172a; font-weight: 700; cursor: pointer;">種目を追加</button>
+    </form>
+    <p style="color: #94a3b8; font-size: 12px; margin-bottom: 0;">登録済み：{% for exercise in exercises %}{{ exercise.name }}（{{ exercise.muscle_group }}）{% if not loop.last %}、{% endif %}{% endfor %}</p>
+</section>
+
+{% for day in plans %}
+<section class="card" style="background: #1e293b; border-radius: 16px; padding: 20px; margin-bottom: 20px;">
+    <h2 style="font-size: 20px; margin-top: 0;">{{ day.name }}</h2>
+    <form action="{{ url_for('start_workout') }}" method="POST" style="margin-bottom: 14px;">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="workout_day_id" value="{{ day.id }}">
+        <button type="submit" {% if not day.items %}disabled title="種目を追加してください"{% endif %} style="width: 100%; padding: 12px; border: 0; border-radius: 8px; background: {% if day.items %}#22c55e{% else %}#475569{% endif %}; color: #fff; font-weight: 700; cursor: {% if day.items %}pointer{% else %}not-allowed{% endif %};">{{ day.name }}のトレーニングを開始</button>
+    </form>
+    {% if day.items %}
+    <ol style="padding-left: 22px;">
+        {% for item in day.items %}
+        <li style="padding: 8px 0;">
+            <div style="display: flex; justify-content: space-between; gap: 10px; align-items: center;">
+                <span>{{ item.exercise.name }}（{{ item.exercise.muscle_group }}） — {{ item.sets }}セット × {{ item.rep_min }}〜{{ item.rep_max }}回</span>
+                <form action="{{ url_for('delete_menu_item', item_id=item.id) }}" method="POST" onsubmit="return confirm('この種目をメニューから外しますか？');">
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                    <button type="submit" aria-label="{{ item.exercise.name }}を削除" style="background: #ef4444; color: #fff; border: 0; border-radius: 6px; padding: 6px 9px; cursor: pointer;">削除</button>
+                </form>
+            </div>
+        </li>
+        {% endfor %}
+    </ol>
+    {% else %}
+    <p style="color: #94a3b8;">まだ種目がありません。</p>
+    {% endif %}
+
+    <form action="{{ url_for('add_menu_item', day_id=day.id) }}" method="POST" style="border-top: 1px solid #334155; padding-top: 16px;">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+        <label style="display: block; color: #94a3b8; font-size: 13px; margin-bottom: 8px;">種目</label>
+        <select name="exercise_id" required style="width: 100%; padding: 11px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; margin-bottom: 12px;">
+            {% for exercise in exercises %}<option value="{{ exercise.id }}">{{ exercise.name }}（{{ exercise.muscle_group }}）</option>{% endfor %}
+        </select>
+        <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+            <div style="flex: 1;"><label style="display: block; color: #94a3b8; font-size: 12px; margin-bottom: 6px;">セット</label><input type="number" name="sets" min="1" max="20" value="3" required style="width: 100%; box-sizing: border-box; padding: 10px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff;"></div>
+            <div style="flex: 1;"><label style="display: block; color: #94a3b8; font-size: 12px; margin-bottom: 6px;">最低回数</label><input type="number" name="rep_min" min="1" max="100" value="8" required style="width: 100%; box-sizing: border-box; padding: 10px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff;"></div>
+            <div style="flex: 1;"><label style="display: block; color: #94a3b8; font-size: 12px; margin-bottom: 6px;">最高回数</label><input type="number" name="rep_max" min="1" max="100" value="12" required style="width: 100%; box-sizing: border-box; padding: 10px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff;"></div>
+        </div>
+        <button type="submit" style="width: 100%; padding: 12px; border: 0; border-radius: 8px; background: #38bdf8; color: #0f172a; font-weight: 700; cursor: pointer;">{{ day.name }}に追加</button>
+    </form>
+</section>
+{% endfor %}
+{% endblock %}

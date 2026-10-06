@@ -1,36 +1,47 @@
 {% extends "base.html" %}
 
 {% block content %}
+<style>
+    .training-form input,
+    .training-form select,
+    .training-form button { box-sizing: border-box; max-width: 100%; }
+    .training-form .training-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 15px; margin-bottom: 20px; }
+    .training-form .training-fields > div { min-width: 0; }
+</style>
 <div class="app-header">
     <h1 class="app-title">LIFT LOG</h1>
     <div class="app-subtitle" style="text-align: center; color: #94a3b8; font-size: 14px; font-weight: 700; letter-spacing: 2px;">WORKOUT TRACKER PRO</div>
 </div>
 
 <div class="card" style="background: #1e293b; border-radius: 16px; padding: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); margin-bottom: 24px;">
-    <form method="POST" action="/">
+    {% if error %}
+    <div role="alert" style="background: rgba(239, 68, 68, 0.12); border-left: 4px solid #ef4444; color: #fecaca; padding: 12px 14px; border-radius: 8px; margin-bottom: 18px;">{{ error }}</div>
+    {% endif %}
+    <form method="POST" action="/" class="training-form">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
         <div class="form-group" style="margin-bottom: 20px;">
             <label style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 8px; color: #94a3b8;">📝 種目</label>
             <select name="lift_type" required style="width: 100%; padding: 14px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; font-size: 16px;">
-                <option value="ベンチプレス">ベンチプレス</option>
-                <option value="スクワット">スクワット</option>
-                <option value="その他">その他(ダンベル等)</option>
+                {% for exercise in exercises %}
+                <option value="{{ exercise.name }}" {% if form_data.get('lift_type', exercises[0].name if exercises else '') == exercise.name %}selected{% endif %}>{{ exercise.name }}（{{ exercise.muscle_group }}）</option>
+                {% endfor %}
             </select>
         </div>
         
-        <div style="display: flex; gap: 15px; margin-bottom: 20px;">
-            <div style="flex: 1;">
+        <div class="training-fields">
+            <div>
                 <label style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 8px; color: #94a3b8;">🏋️ 重量 (kg)</label>
-                <input type="number" step="0.5" name="weight" required placeholder="80" style="width: 100%; padding: 14px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; font-size: 16px;">
+                <input type="number" min="0.1" max="1000" step="0.5" name="weight" required placeholder="80" value="{{ form_data.get('weight', '') }}" style="width: 100%; padding: 14px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; font-size: 16px;">
             </div>
-            <div style="flex: 1;">
+            <div>
                 <label style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 8px; color: #94a3b8;">🔄 回数 (回)</label>
-                <input type="number" name="reps" required placeholder="10" style="width: 100%; padding: 14px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; font-size: 16px;">
+                <input type="number" min="1" max="100" name="reps" required placeholder="10" value="{{ form_data.get('reps', '') }}" style="width: 100%; padding: 14px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; font-size: 16px;">
             </div>
         </div>
         
         <div class="form-group" style="margin-bottom: 20px;">
             <label style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 8px; color: #94a3b8;">🎯 次回の目標レップ数 (回)</label>
-            <input type="number" name="target_reps" required placeholder="8〜12" style="width: 100%; padding: 14px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; font-size: 16px;">
+            <input type="number" min="1" max="100" name="target_reps" required placeholder="8〜12" value="{{ form_data.get('target_reps', '') }}" style="width: 100%; padding: 14px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; font-size: 16px;">
         </div>
         
         <button type="submit" style="width: 100%; padding: 16px; border: none; border-radius: 8px; background: linear-gradient(135deg, #38bdf8, #3b82f6); color: white; font-size: 16px; font-weight: 700; cursor: pointer;">AIに重量を提案してもらう</button>
@@ -55,8 +66,9 @@
     {% if logs %}
         <div style="display: flex; background: #0f172a; border-radius: 8px; padding: 4px; margin-bottom: 20px; border: 1px solid #334155;">
             <button class="tab-btn active" onclick="filterLogs('すべて', this)" style="flex: 1; background: #38bdf8; color: #0f172a; border: none; padding: 10px 0; font-size: 12px; font-weight: bold; border-radius: 6px; cursor: pointer;">すべて</button>
-            <button class="tab-btn" onclick="filterLogs('ベンチプレス', this)" style="flex: 1; background: transparent; color: #64748b; border: none; padding: 10px 0; font-size: 12px; font-weight: bold; border-radius: 6px; cursor: pointer;">Push</button>
-            <button class="tab-btn" onclick="filterLogs('スクワット', this)" style="flex: 1; background: transparent; color: #64748b; border: none; padding: 10px 0; font-size: 12px; font-weight: bold; border-radius: 6px; cursor: pointer;">Legs</button>
+            {% for exercise in exercises %}
+            <button class="tab-btn" data-lift="{{ exercise.name }}" onclick="filterLogs(this.dataset.lift, this)" style="flex: 1; background: transparent; color: #64748b; border: none; padding: 10px 0; font-size: 12px; font-weight: bold; border-radius: 6px; cursor: pointer;">{{ exercise.name }}</button>
+            {% endfor %}
         </div>
 
         <div id="log-container">
@@ -70,6 +82,7 @@
                 <div style="display: flex; gap: 8px;">
                     <a href="/edit/{{ log.id }}" style="background: #3b82f6; color: white; padding: 8px 12px; border-radius: 6px; text-decoration: none; font-size: 12px; font-weight: bold;">編集</a>
                     <form action="/delete/{{ log.id }}" method="POST" style="margin: 0;" onsubmit="return confirm('削除しますか？');">
+                        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
                         <button type="submit" style="background: #ef4444; color: white; border: none; border-radius: 6px; padding: 8px 12px; font-size: 12px; font-weight: bold; cursor: pointer;">削除</button>
                     </form>
                 </div>
@@ -83,7 +96,7 @@
 <script>
     let myChart = null;
     function drawChart(targetLift) {
-        const rawData = [{% for log in logs %}{date:"{{log.date.strftime('%m/%d')}}",lift:"{{log.lift_type}}",rm:{{log.one_rm}}},{% endfor %}].reverse();
+        const rawData = {{ chart_data|tojson }};
         let filtered = targetLift === 'すべて' ? rawData : rawData.filter(i => i.lift === targetLift);
         const ctx = document.getElementById('growthChart').getContext('2d');
         if(myChart) myChart.destroy();

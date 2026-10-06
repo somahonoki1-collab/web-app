@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="app-header">
+    <h1 style="font-size: 28px; font-weight: 900; text-align: center;">{% if mode == 'register' %}アカウント作成{% else %}ログイン{% endif %}</h1>
+    <p style="text-align: center; color: #94a3b8; font-size: 14px;">家族それぞれのトレーニング記録を管理します</p>
+</div>
+
+<div class="card" style="background: #1e293b; border-radius: 16px; padding: 24px;">
+    <form method="POST">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+        <div class="form-group" style="margin-bottom: 20px;">
+            <label for="username" style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 8px; color: #94a3b8;">ユーザー名</label>
+            <input id="username" name="username" autocomplete="username" minlength="3" maxlength="40" required value="{{ request.form.get('username', '') }}" style="width: 100%; padding: 14px; box-sizing: border-box; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; font-size: 16px;">
+        </div>
+        <div class="form-group" style="margin-bottom: 20px;">
+            <label for="password" style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 8px; color: #94a3b8;">パスワード（8文字以上）</label>
+            <input id="password" type="password" name="password" autocomplete="{% if mode == 'register' %}new-password{% else %}current-password{% endif %}" minlength="8" required style="width: 100%; padding: 14px; box-sizing: border-box; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; font-size: 16px;">
+        </div>
+        {% if mode == 'register' %}
+        <div class="form-group" style="margin-bottom: 20px;">
+            <label for="password_confirmation" style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 8px; color: #94a3b8;">パスワード（確認）</label>
+            <input id="password_confirmation" type="password" name="password_confirmation" autocomplete="new-password" minlength="8" required style="width: 100%; padding: 14px; box-sizing: border-box; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; font-size: 16px;">
+        </div>
+        {% endif %}
+        <button type="submit" style="width: 100%; padding: 16px; border: none; border-radius: 8px; background: linear-gradient(135deg, #38bdf8, #3b82f6); color: white; font-size: 16px; font-weight: 700; cursor: pointer;">{% if mode == 'register' %}アカウントを作成{% else %}ログイン{% endif %}</button>
+    </form>
+    <p style="text-align: center; color: #94a3b8; margin: 20px 0 0;">
+        {% if mode == 'register' %}
+            すでにアカウントがありますか？ <a href="{{ url_for('login') }}" style="color: #38bdf8;">ログイン</a>
+        {% else %}
+            はじめて使いますか？ <a href="{{ url_for('register') }}" style="color: #38bdf8;">アカウント作成</a>
+        {% endif %}
+    </p>
+</div>
+{% endblock %}
