@@ -15,12 +15,12 @@
         </div>
         <div class="form-group" style="margin-bottom: 20px;">
             <label for="password" style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 8px; color: #94a3b8;">パスワード（8文字以上）</label>
-            <input id="password" type="password" name="password" autocomplete="{% if mode == 'register' %}new-password{% else %}current-password{% endif %}" minlength="8" required style="width: 100%; padding: 14px; box-sizing: border-box; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; font-size: 16px;">
+            <input id="password" type="password" name="password" autocomplete="{% if mode == 'register' %}new-password{% else %}current-password{% endif %}" minlength="8" maxlength="128" required style="width: 100%; padding: 14px; box-sizing: border-box; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; font-size: 16px;">
         </div>
         {% if mode == 'register' %}
         <div class="form-group" style="margin-bottom: 20px;">
             <label for="password_confirmation" style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 8px; color: #94a3b8;">パスワード（確認）</label>
-            <input id="password_confirmation" type="password" name="password_confirmation" autocomplete="new-password" minlength="8" required style="width: 100%; padding: 14px; box-sizing: border-box; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; font-size: 16px;">
+            <input id="password_confirmation" type="password" name="password_confirmation" autocomplete="new-password" minlength="8" maxlength="128" required style="width: 100%; padding: 14px; box-sizing: border-box; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; font-size: 16px;">
         </div>
         {% endif %}
         <button type="submit" style="width: 100%; padding: 16px; border: none; border-radius: 8px; background: linear-gradient(135deg, #38bdf8, #3b82f6); color: white; font-size: 16px; font-weight: 700; cursor: pointer;">{% if mode == 'register' %}アカウントを作成{% else %}ログイン{% endif %}</button>
@@ -32,5 +32,8 @@
             はじめて使いますか？ <a href="{{ url_for('register') }}" style="color: #38bdf8;">アカウント作成</a>
         {% endif %}
     </p>
+    {% if mode == 'login' %}
+    <p class="muted" style="text-align: center; margin-top: 16px;">パスワードを忘れた場合は管理者に連絡してください。本人確認後に再設定します。</p>
+    {% endif %}
 </div>
 {% endblock %}

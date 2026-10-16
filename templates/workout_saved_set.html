@@ -1,0 +1,16 @@
+{% from 'recording_fields.html' import editor with context %}
+<p style="color:#86efac; margin:8px 0;">記録済み：{{ record_text(saved) }}</p>
+{% if not workout_session.completed_at and not workout_session.paused_at %}
+<details class="workout-edit">
+    <summary class="muted" style="cursor:pointer;">このセットの記録・方式を編集</summary>
+    <form method="POST" action="{{ url_for('edit_workout_set', session_id=workout_session.id, log_id=saved.id) }}" class="workout-fields" data-set-edit>
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+        {{ editor(saved.recording_mode, fallback=saved) }}
+        <button class="btn" type="submit">修正を保存</button>
+    </form>
+    <form method="POST" action="{{ url_for('delete_workout_set', session_id=workout_session.id, log_id=saved.id) }}" style="margin-top:10px;" onsubmit="return confirm('このセットの記録を削除しますか？');">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+        <button class="btn danger" type="submit">このセットの記録を削除</button>
+    </form>
+</details>
+{% endif %}

@@ -1,0 +1,122 @@
+{% extends "growth/layout.html" %}
+{% block growth_content %}
+<header class="growth-header">
+    <a class="growth-link" href="{{ url_for('growth.index') }}">‹ 成長対戦</a>
+    <h1 style="overflow-wrap:anywhere;">{{ group.name }}</h1>
+    <p class="muted">{{ memberships|length }}人のグループ</p>
+</header>
+
+<section class="panel">
+    <h2 class="growth-title">仲間を招待</h2>
+    <div class="growth-box">
+        <span class="field-label">招待コード</span>
+        <strong class="growth-code" id="invite-code">{{ group.invite_code }}</strong>
+    </div>
+    <p class="growth-help">仲間もアカウントを作り、「成長対戦 → 招待コードで参加」から参加できます。参加者がそろってから対戦を開始してください。</p>
+    <p class="muted" style="overflow-wrap:anywhere;">メンバー：{% for membership in memberships %}{{ membership.user.username }}{% if membership.user_id == group.owner_id %}（管理者）{% endif %}{% if not loop.last %}、{% endif %}{% endfor %}</p>
+</section>
+
+<section class="panel">
+    <h2 class="growth-title">対戦一覧</h2>
+    {% for challenge in challenges %}
+    <a class="growth-link growth-box" style="display:block; margin-top:10px;" href="{{ url_for('growth.challenge_page', challenge_id=challenge.id) }}">
+        <strong style="overflow-wrap:anywhere;">{{ challenge.name }}</strong>
+        <span class="growth-sub">{{ challenge.started_at.strftime('%Y-%m-%d') }}開始 · {{ challenge.rounds|length }}種目</span>
+        {% for round in challenge.rounds %}
+        <span class="growth-sub">{{ round.exercise_name }} · {{ round.months }}カ月 · {% if round.ends_at <= now %}終了{% else %}対戦中{% endif %}</span>
+        {% endfor %}
+    </a>
+    {% else %}<p class="muted">まだ対戦がありません。</p>{% endfor %}
+</section>
+
+{% if group.owner_id == user.id %}
+<section class="panel">
+    <h2 class="growth-title">新しい対戦を開始</h2>
+    <p class="growth-help">現在の{{ memberships|length }}人で開始します。開始後は参加者・種目・期間・採点ルールを固定します。</p>
+    <form action="{{ url_for('growth.create_challenge', group_id=group.id) }}" method="POST" class="growth-stack" id="challenge-form">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+        <label><span class="field-label">対戦名</span>
+            <input class="field" name="name" maxlength="80" placeholder="例：秋の成長チャレンジ" required>
+        </label>
+        <label><span class="field-label">採点に使う成績</span>
+            <select class="field" name="metric" id="growth-metric">
+                <option value="estimated_1rm">推定1RM（重量と回数・おすすめ）</option>
+                <option value="fixed_reps">同じ回数で挙げた重量</option>
+            </select>
+        </label>
+        <div id="fixed-reps-options" hidden>
+            <label><span class="field-label">比較する回数（同じ回数の重量を選んだ場合）</span>
+                <input class="field" name="target_reps" type="number" min="1" max="20" value="5">
+            </label>
+        </div>
+        <p class="growth-help">推定1RMは1〜12回のセットを対象にします。同じ種目・器具・動作で記録してください。ウォームアップを含め、対象セットの最高成績がそのトレーニングの成績になります。</p>
+        <div>
+            <h3 class="growth-title" style="font-size:15px;">対戦する種目を選択</h3>
+            <p class="growth-help">現在の採点は「重量＋回数」の記録が対象です。自重・回数のみ・ネガティブは集計に含めません。方式を変更する前の通常の記録は引き続き対象です。</p>
+            {% for exercise in exercises if exercise.recording_mode == 'weight' %}
+            <div class="growth-exercise">
+                <label style="display:flex; gap:10px; align-items:center;">
+                    <input type="checkbox" name="exercise_ids" value="{{ exercise.id }}" class="exercise-check" data-settings="settings-{{ exercise.id }}">
+                    <strong>{{ exercise.name }}</strong>
+                </label>
+                <fieldset id="settings-{{ exercise.id }}" disabled style="border:0; padding:0; margin:0; min-width:0;">
+                    <div class="two-fields">
+                        <label><span class="field-label">期間</span>
+                            <select class="field" name="months_{{ exercise.id }}">
+                                {% for months in range(1, 13) %}<option value="{{ months }}" {% if months == 1 %}selected{% endif %}>{{ months }}カ月</option>{% endfor %}
+                            </select>
+                        </label>
+                        <label><span class="field-label">配点基準 (kg)</span>
+                            <input class="field" type="number" name="reference_{{ exercise.id }}" value="{{ defaults[exercise.id] }}" min="0.1" max="1000" step="0.1" required>
+                        </label>
+                    </div>
+                </fieldset>
+            </div>
+            {% endfor %}
+        </div>
+        <p class="growth-help">配点基準は点数の尺度です。平均筋力や目標重量を表す値ではありません。初期値のまま始められます。</p>
+        <details class="growth-rule">
+            <summary>初版の採点ルールを見る</summary>
+            <p>ポイント＝100 ×（終了成績 − 開始成績）÷ 配点基準 × 補正倍率</p>
+            <p>補正倍率＝√（開始成績 ÷ 配点基準）。倍率は0.5〜2.0の範囲に制限します。</p>
+            <ul>
+                <li>設定後の最初の対象トレーニングが開始成績、期間内の最後が終了成績です。</li>
+                <li>ホームの記録は保存時、メニューの記録はトレーニング完了時に集計します。開始前から実施中だったトレーニングは対象外です。</li>
+                <li>対象になるトレーニングが2回以上ある人を順位に入れます。記録がない人や開始のみの人は順位対象外です。</li>
+                <li>期間終了時の結果を固定し、結果発表後に推移グラフを表示します。</li>
+                <li>順位は種目ごとです。体重・年齢・経験の補正は含まない初版の競争ルールです。</li>
+            </ul>
+        </details>
+        <p class="growth-help" id="selection-error" role="alert" hidden>対戦する種目を1つ以上選んでください。</p>
+        <button class="btn" type="submit">この内容で対戦を開始</button>
+    </form>
+</section>
+{% else %}
+<p class="growth-help">新しい対戦はグループの管理者が開始できます。開始済みの対戦へは途中参加できません。</p>
+{% endif %}
+<script>
+(() => {
+    const form = document.getElementById('challenge-form');
+    if (!form) return;
+    const checks = [...form.querySelectorAll('.exercise-check')];
+    checks.forEach(check => {
+        const update = () => { document.getElementById(check.dataset.settings).disabled = !check.checked; };
+        check.addEventListener('change', update);
+        update();
+    });
+    const metric = document.getElementById('growth-metric');
+    const updateMetric = () => {
+        const fixed = metric.value === 'fixed_reps';
+        document.getElementById('fixed-reps-options').hidden = !fixed;
+        form.elements.target_reps.disabled = !fixed;
+    };
+    metric.addEventListener('change', updateMetric);
+    updateMetric();
+    form.addEventListener('submit', event => {
+        const missing = !checks.some(check => check.checked);
+        document.getElementById('selection-error').hidden = !missing;
+        if (missing) event.preventDefault();
+    });
+})();
+</script>
+{% endblock %}

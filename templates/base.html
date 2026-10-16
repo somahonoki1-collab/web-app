@@ -7,12 +7,13 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700;900&display=swap" rel="stylesheet">
     <style>
         /* 全体のダークモード設定 */
-        body { font-family: 'Noto Sans JP', sans-serif; background-color: #0f172a; color: #f8fafc; margin: 0; padding: 0; padding-bottom: 70px; }
+        body { font-family: 'Noto Sans JP', sans-serif; background-color: #0f172a; color: #f8fafc; margin: 0; padding: 0; padding-bottom: calc(80px + env(safe-area-inset-bottom)); }
         .container { max-width: 480px; margin: 0 auto; padding: 20px; }
         
         /* スマホアプリ風の固定タスクバー（画面下部） */
-        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: #1e293b; border-top: 1px solid #334155; display: flex; justify-content: space-around; padding: 10px 0; z-index: 1000; }
-        .nav-item { color: #94a3b8; text-decoration: none; font-size: 12px; font-weight: bold; text-align: center; flex: 1; transition: color 0.2s; }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: #1e293b; border-top: 1px solid #334155; display: flex; justify-content: space-around; gap: 2px; padding: 10px 0 calc(10px + env(safe-area-inset-bottom)); z-index: 1000; }
+        .nav-item { color: #94a3b8; text-decoration: none; font-size: clamp(9px, 2.5vw, 12px); font-weight: bold; text-align: center; flex: 1; min-width: 0; transition: color 0.2s; }
+        .nav-item.active { color: #38bdf8; }
         .nav-item:hover { color: #f59e0b; }
         /* アイコン用の文字サイズ */
         .nav-icon { display: block; font-size: 20px; margin-bottom: 4px; }
@@ -23,6 +24,7 @@
         .two-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
         .btn { display: inline-block; box-sizing: border-box; padding: 11px 14px; border: 0; border-radius: 8px; background: #38bdf8; color: #0f172a; font-weight: 700; text-align: center; text-decoration: none; cursor: pointer; }
         .btn.secondary { background: #334155; color: #f8fafc; }
+        .btn.danger { background: #ef4444; color: #fff; }
         .target-table { width: 100%; border-collapse: collapse; font-size: 13px; text-align: left; }
         .target-table th, .target-table td { padding: 8px 4px; border-bottom: 1px solid #334155; overflow-wrap: anywhere; }
     </style>
@@ -59,6 +61,10 @@
         <a href="{{ url_for('recovery_page') }}" class="nav-item">
             <span class="nav-icon">🛌</span>
             回復
+        </a>
+        <a href="{{ url_for('growth.index') }}" class="nav-item {% if request.blueprint == 'growth' %}active{% endif %}" {% if request.blueprint == 'growth' %}aria-current="page"{% endif %}>
+            <span class="nav-icon">📈</span>
+            成長対戦
         </a>
         <form action="{{ url_for('logout') }}" method="POST" class="nav-item" style="margin: 0;">
             <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">

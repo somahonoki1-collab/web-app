@@ -5,11 +5,16 @@
     .calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; }
     .calendar-cell { min-height: 112px; min-width: 0; background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 7px; overflow-wrap: anywhere; }
     .calendar-cell.empty { background: transparent; border-color: transparent; }
+    .calendar-cell:target { outline: 2px solid #38bdf8; outline-offset: 1px; scroll-margin-top: 18px; }
     .calendar-entry { border-radius: 5px; padding: 5px; margin-top: 5px; font-size: 11px; }
     .calendar-entry.planned { background: rgba(56, 189, 248, .15); color: #bae6fd; }
-    .calendar-entry.in_progress { background: rgba(245, 158, 11, .16); color: #fde68a; }
-    .calendar-entry.completed { background: rgba(34, 197, 94, .14); color: #bbf7d0; }
-    .calendar-entry.cancelled { background: rgba(148, 163, 184, .12); color: #cbd5e1; text-decoration: line-through; }
+    .calendar-entry.recorded { background: rgba(245, 158, 11, .16); color: #fde68a; }
+    .calendar-open { width:100%; height:100%; border:0; padding:0; background:transparent; color:inherit; text-align:left; cursor:pointer; font-family:inherit; }
+    .calendar-label { display:block; font-weight:700; }
+    .calendar-detail-entry { border-top:1px solid #334155; padding:12px 0; }
+    .calendar-detail-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; }
+    .calendar-detail-actions form { margin:0; }
+    .calendar-cell { box-sizing:border-box; }
     @media (max-width: 600px) {
         .calendar-grid { gap: 2px; }
         .calendar-cell { min-height: 82px; padding: 4px; }
@@ -45,7 +50,7 @@
             <input id="scheduled-date" type="date" name="scheduled_date" value="{{ selected_schedule_date.isoformat() }}" required style="width: 100%; box-sizing: border-box; padding: 11px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff;">
         </div>
         <div style="flex: 1; min-width: 140px;">
-            <label for="workout-day" style="display: block; color: #94a3b8; font-size: 12px; margin-bottom: 6px;">PPLメニュー</label>
+            <label for="workout-day" style="display: block; color: #94a3b8; font-size: 12px; margin-bottom: 6px;">メニュー</label>
             <select id="workout-day" name="workout_day_id" required style="width: 100%; padding: 11px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff;">
                 {% for workout_day in workout_days %}<option value="{{ workout_day.id }}" {% if workout_day.id == selected_workout_day %}selected{% endif %}>{{ workout_day.name }}</option>{% endfor %}
             </select>
@@ -70,47 +75,13 @@
             {% for day in week %}
                 {% if day %}
                     {% set day_key = day.isoformat() %}
-                    <div class="calendar-cell">
-                        <div style="font-size: 12px; font-weight: 700; {% if day == current_date %}color: #38bdf8;{% else %}color: #f8fafc;{% endif %}">{{ day.day }}</div>
-                        {% for schedule in schedules_by_day.get(day_key, []) %}
-                        <div class="calendar-entry {{ schedule.status }}">
-                            <strong>{{ schedule.workout_day.name }}</strong>
-                            <div>{% if schedule.status == 'planned' %}予定{% elif schedule.status == 'in_progress' %}実施中{% elif schedule.status == 'completed' %}完了{% else %}取消{% endif %}</div>
-                            {% if schedule.session %}
-                            <a href="{{ url_for('workout_session_page', session_id=schedule.session.id) }}" style="display: block; margin-top: 4px; color: inherit;">{% if schedule.session.completed_at %}記録を見る{% else %}トレーニングを再開{% endif %}</a>
-                            {% elif schedule.status == 'planned' %}
-                            <form action="{{ url_for('start_workout') }}" method="POST" style="margin-top: 4px;">
-                                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
-                                <input type="hidden" name="workout_day_id" value="{{ schedule.workout_day_id }}">
-                                <input type="hidden" name="schedule_id" value="{{ schedule.id }}">
-                                <button type="submit" style="background: transparent; color: inherit; border: 1px solid currentColor; border-radius: 4px; padding: 2px 4px; font-size: 10px; cursor: pointer;">トレーニング開始</button>
-                            </form>
-                            {% endif %}
-                            {% if schedule.status == 'planned' %}
-                            <form action="{{ url_for('update_workout_schedule_status', event_id=schedule.id) }}" method="POST" style="margin-top: 3px;">
-                                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
-                                <input type="hidden" name="status" value="cancelled">
-                                <button type="submit" style="background: transparent; color: inherit; border: 0; padding: 2px; font-size: 10px; cursor: pointer;">取り消す</button>
-                            </form>
-                            {% endif %}
-                            {% if schedule.status == 'cancelled' %}
-                            <form action="{{ url_for('update_workout_schedule_status', event_id=schedule.id) }}" method="POST" style="margin-top: 4px;">
-                                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
-                                <input type="hidden" name="status" value="planned">
-                                <button type="submit" style="background: transparent; color: inherit; border: 1px solid currentColor; border-radius: 4px; padding: 2px 4px; font-size: 10px; cursor: pointer;">予定に戻す</button>
-                            </form>
-                            {% endif %}
-                            <form action="{{ url_for('delete_workout_schedule', event_id=schedule.id) }}" method="POST" style="margin-top: 3px;" onsubmit="return confirm('この予定を削除しますか？');">
-                                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
-                                <button type="submit" style="background: transparent; color: inherit; border: 0; padding: 2px; font-size: 10px; cursor: pointer;">削除</button>
-                            </form>
-                        </div>
-                        {% endfor %}
-                        {% for log in logs_by_day.get(day_key, []) %}
-                        <a href="{{ url_for('edit_log', log_id=log.id) }}" class="calendar-entry" style="display: block; background: rgba(245, 158, 11, .15); color: #fde68a; text-decoration: none;">
-                            実績: {{ log.lift_type }}<br>{{ log.weight }}kg × {{ log.reps }}
-                        </a>
-                        {% endfor %}
+                    <div class="calendar-cell" id="day-{{ day_key }}">
+                        <button class="calendar-open" type="button" data-day="{{ day_key }}" {% if not schedules_by_day.get(day_key) and not logs_by_day.get(day_key) and not sessions_by_day.get(day_key) %}disabled{% endif %} aria-label="{{ day_key }}の詳細">
+                            <span style="font-size:12px; font-weight:700; {% if day == current_date %}color:#38bdf8;{% endif %}">{{ day.day }}</span>
+                            {% for entry in calendar_entries.get(day_key, []) %}
+                            <span class="calendar-entry calendar-label {{ 'recorded' if entry.recorded else 'planned' }}">{{ entry.label }}</span>
+                            {% endfor %}
+                        </button>
                     </div>
                 {% else %}
                     <div class="calendar-cell empty" aria-hidden="true"></div>
@@ -118,6 +89,83 @@
             {% endfor %}
         {% endfor %}
     </div>
-    <p style="color: #94a3b8; font-size: 12px; margin: 12px 4px 0;">青は予定、黄は実施中または記録済み、緑は完了した予定です。</p>
+    <p class="muted" style="margin-bottom:0;">青：予定 ／ 黄：実施中・中断中・記録済み。日付を選ぶと詳細を開きます。</p>
 </section>
+
+{% for week in weeks %}{% for day in week %}{% if day %}
+{% set day_key = day.isoformat() %}
+{% if schedules_by_day.get(day_key) or logs_by_day.get(day_key) or sessions_by_day.get(day_key) %}
+<details class="panel calendar-detail" id="calendar-details-{{ day_key }}">
+    <summary style="cursor:pointer; font-weight:700;">{{ day.strftime('%m月%d日') }}の予定・記録</summary>
+    {% for schedule in schedules_by_day.get(day_key, []) %}
+    <div class="calendar-detail-entry">
+        <strong style="color:{{ '#fbbf24' if schedule.session or schedule.status in ['in_progress', 'completed'] else '#38bdf8' }};">{{ schedule.workout_day.name }}</strong>
+        <span class="muted"> · {% if schedule.session %}{{ '中断中' if schedule.session.paused_at else '実施中' }}{% else %}予定{% endif %}</span>
+        <div class="calendar-detail-actions">
+            {% if schedule.session %}
+                {% if schedule.session.completed_at %}
+                <a class="btn secondary" href="{{ url_for('workout_session_page', session_id=schedule.session.id) }}">記録を見る</a>
+                {% else %}
+                <form method="POST" action="{{ url_for('resume_workout', session_id=schedule.session.id) }}">
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}"><button class="btn" type="submit">トレーニングを再開</button>
+                </form>
+                {% endif %}
+            {% else %}
+            <form method="POST" action="{{ url_for('start_workout') }}">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="workout_day_id" value="{{ schedule.workout_day_id }}"><input type="hidden" name="schedule_id" value="{{ schedule.id }}">
+                <button class="btn" type="submit">トレーニング開始</button>
+            </form>
+            {% endif %}
+            <form method="POST" action="{{ url_for('delete_workout_schedule', event_id=schedule.id) }}" onsubmit="return confirm('この予定を削除しますか？トレーニング記録は残ります。');">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}"><button class="btn secondary" type="submit">予定を削除</button>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
+    {% for workout in sessions_by_day.get(day_key, []) %}
+    {% if not workout.schedule or workout.schedule.scheduled_date.isoformat() != day_key %}
+    <div class="calendar-detail-entry">
+        <strong style="color:#fbbf24;">{{ workout.display_name }}</strong><span class="muted"> · {{ '完了' if workout.completed_at else '中断中' if workout.paused_at else '実施中' }}</span>
+        <div class="calendar-detail-actions">
+            <a class="btn secondary" href="{{ url_for('workout_session_page', session_id=workout.id) }}">トレーニングを開く</a>
+            <form method="POST" action="{{ url_for('delete_workout', session_id=workout.id) }}" onsubmit="return confirm('このトレーニングと全セット記録を削除しますか？');">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="return_to" value="calendar"><button class="btn danger" type="submit">記録を削除</button>
+            </form>
+        </div>
+    </div>
+    {% endif %}
+    {% endfor %}
+    {% for log in logs_by_day.get(day_key, []) %}
+    {% if not log.session_id %}
+    <div class="calendar-detail-entry" style="color:#fde68a;">
+        <span>{{ log.lift_type }} · {{ record_text(log) }}</span>
+        <span class="muted"> · {{ log.set_number }}セット目</span>
+        <a style="color:#38bdf8; margin-left:8px;" href="{{ url_for('edit_log', log_id=log.id) }}">編集</a>
+        <form method="POST" action="{{ url_for('delete_log', log_id=log.id) }}" onsubmit="return confirm('このセット記録を削除しますか？');" style="display:inline-block; margin:6px 0;">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="return_to" value="calendar"><button class="btn secondary" type="submit">削除</button>
+        </form>
+    </div>
+    {% endif %}{% endfor %}
+</details>
+{% endif %}{% endif %}{% endfor %}{% endfor %}
+
+<script>
+(() => {
+    const showDay = day => {
+        const detail = document.getElementById('calendar-details-' + day);
+        if (!detail) return;
+        detail.open = true;
+        detail.scrollIntoView({behavior:'smooth', block:'start'});
+    };
+    document.querySelectorAll('.calendar-open[data-day]').forEach(button => {
+        button.addEventListener('click', () => showDay(button.dataset.day));
+    });
+    const showLinkedDay = () => {
+        const match = location.hash.match(/^#day-(\d{4}-\d{2}-\d{2})$/);
+        if (match) showDay(match[1]);
+    };
+    window.addEventListener('load', showLinkedDay);
+    window.addEventListener('hashchange', showLinkedDay);
+})();
+</script>
 {% endblock %}

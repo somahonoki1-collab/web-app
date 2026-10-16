@@ -1,65 +1,239 @@
 {% extends "base.html" %}
+{% from "recording_fields.html" import mode_select with context %}
+
+{% macro choices(exercises, primary_id=none, selected_ids=[]) %}
+<div class="filter-section candidate-picker">
+    <label class="field-label">候補を検索<input class="field" type="search" data-filter-input placeholder="種目名・部位で検索" aria-label="orの候補を検索"></label>
+    <div class="choice-scroll" data-filter-list>
+        {% for exercise in exercises %}{% if exercise.id != primary_id %}
+        <label class="candidate-row" data-query="{{ exercise.name }} {{ exercise.muscle_group }}">
+            <input type="checkbox" name="alternative_ids" value="{{ exercise.id }}" {% if exercise.id in selected_ids %}checked{% endif %}>
+            <span>{{ exercise.name }}<span class="muted">（{{ exercise.muscle_group }}）</span></span>
+        </label>
+        {% endif %}{% endfor %}
+    </div>
+    <p class="muted" data-filter-empty hidden>該当する種目がありません。</p>
+</div>
+{% endmacro %}
 
 {% block content %}
-<div class="app-header">
-    <h1 style="font-size: 28px; font-weight: 900; text-align: center;">MY TRAINING MENU</h1>
-    <p style="text-align: center; color: #94a3b8; font-size: 14px;">種目を登録して、Push・Pull・Legsのメニューを作成します。</p>
-</div>
+<style>
+    .menu-heading { font-size:26px; margin:0 0 8px; }
+    .menu-summary { cursor:pointer; font-size:17px; overflow-wrap:anywhere; }
+    .menu-content { padding-top:18px; }
+    .choice-scroll { max-height:180px; overflow-y:auto; overscroll-behavior:contain; border:1px solid #334155; border-radius:8px; padding:4px 10px; }
+    .registered-scroll { max-height:300px; }
+    .candidate-row { display:flex; gap:10px; align-items:center; padding:9px 0; overflow-wrap:anywhere; }
+    .candidate-row span { min-width:0; }
+    .exercise-row { display:flex; justify-content:space-between; align-items:center; gap:10px; border-bottom:1px solid #334155; padding:10px 0; }
+    .exercise-row > span { min-width:0; overflow-wrap:anywhere; }
+    .exercise-row form { margin:0; flex-shrink:0; }
+    [data-query][hidden] { display:none; }
+    .menu-tools { display:grid; gap:12px; }
+    .menu-sets { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+    .menu-item { border-top:1px solid #334155; padding:12px 0; }
+    .menu-item-top { display:flex; justify-content:space-between; align-items:start; gap:10px; }
+    .menu-item-top > span { min-width:0; overflow-wrap:anywhere; }
+    .menu-item-top form { margin:0; flex-shrink:0; }
+    .menu-item-actions { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+    .menu-item-actions form { margin:0; }
+    .menu-subsection { margin-top:14px; }
+    .menu-subsection summary { cursor:pointer; color:#94a3b8; }
+    .menu-subsection form { margin-top:12px; }
+    .menu-name { overflow-wrap:anywhere; }
+    .btn:disabled { opacity:.5; cursor:not-allowed; }
+</style>
 
-<section class="card" style="background: #1e293b; border-radius: 16px; padding: 20px; margin-bottom: 20px;">
-    <h2 style="font-size: 18px; margin-top: 0;">種目を追加</h2>
-    <form action="{{ url_for('add_exercise') }}" method="POST">
+<header style="margin-bottom:22px;">
+    <h1 class="menu-heading">トレーニングメニュー</h1>
+    <p class="muted">「上半身の日」「短時間メニュー」など、好きな名前で保存できます。</p>
+</header>
+
+<section class="panel">
+    <h2 style="font-size:18px; margin-top:0;">新しいメニューを作る</h2>
+    <form action="{{ url_for('create_menu') }}" method="POST" class="menu-tools">
         <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
-        <label for="exercise-name" style="display: block; color: #94a3b8; font-size: 13px; margin-bottom: 8px;">種目名</label>
-        <input id="exercise-name" name="name" maxlength="80" required placeholder="例：ラットプルダウン" style="width: 100%; box-sizing: border-box; padding: 12px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; margin-bottom: 14px;">
-        <label for="muscle-group" style="display: block; color: #94a3b8; font-size: 13px; margin-bottom: 8px;">主に鍛える部位</label>
-        <select id="muscle-group" name="muscle_group" required style="width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; margin-bottom: 16px;">
-            {% for group in muscle_groups %}<option value="{{ group }}">{{ group }}</option>{% endfor %}
-        </select>
-        <button type="submit" style="width: 100%; padding: 13px; border: 0; border-radius: 8px; background: #38bdf8; color: #0f172a; font-weight: 700; cursor: pointer;">種目を追加</button>
+        <label class="field-label">メニュー名<input class="field" name="name" maxlength="30" placeholder="例：上半身の日" required></label>
+        <button class="btn" type="submit">作成して保存</button>
     </form>
-    <p style="color: #94a3b8; font-size: 12px; margin-bottom: 0;">登録済み：{% for exercise in exercises %}{{ exercise.name }}（{{ exercise.muscle_group }}）{% if not loop.last %}、{% endif %}{% endfor %}</p>
 </section>
 
-{% for day in plans %}
-<section class="card" style="background: #1e293b; border-radius: 16px; padding: 20px; margin-bottom: 20px;">
-    <h2 style="font-size: 20px; margin-top: 0;">{{ day.name }}</h2>
-    <form action="{{ url_for('start_workout') }}" method="POST" style="margin-bottom: 14px;">
-        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
-        <input type="hidden" name="workout_day_id" value="{{ day.id }}">
-        <button type="submit" {% if not day.items %}disabled title="種目を追加してください"{% endif %} style="width: 100%; padding: 12px; border: 0; border-radius: 8px; background: {% if day.items %}#22c55e{% else %}#475569{% endif %}; color: #fff; font-weight: 700; cursor: {% if day.items %}pointer{% else %}not-allowed{% endif %};">{{ day.name }}のトレーニングを開始</button>
-    </form>
-    {% if day.items %}
-    <ol style="padding-left: 22px;">
-        {% for item in day.items %}
-        <li style="padding: 8px 0;">
-            <div style="display: flex; justify-content: space-between; gap: 10px; align-items: center;">
-                <span>{{ item.exercise.name }}（{{ item.exercise.muscle_group }}） — {{ item.sets }}セット × {{ item.rep_min }}〜{{ item.rep_max }}回</span>
-                <form action="{{ url_for('delete_menu_item', item_id=item.id) }}" method="POST" onsubmit="return confirm('この種目をメニューから外しますか？');">
-                    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
-                    <button type="submit" aria-label="{{ item.exercise.name }}を削除" style="background: #ef4444; color: #fff; border: 0; border-radius: 6px; padding: 6px 9px; cursor: pointer;">削除</button>
-                </form>
+<details class="panel" id="exercise-management" {% if show_exercises %}open{% endif %}>
+    <summary class="menu-summary">登録済み種目を管理（{{ exercises|length }}種目）</summary>
+    <div class="menu-content">
+        <details class="menu-subsection">
+            <summary>新しい種目を追加</summary>
+            <form action="{{ url_for('add_exercise') }}" method="POST" class="menu-tools">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="menu_id" value="{{ selected_menu or '' }}">
+                <label class="field-label">種目名<input class="field" name="name" maxlength="80" placeholder="例：ダンベルショルダープレス" required></label>
+                <label class="field-label">主に鍛える部位<select class="field" name="muscle_group">{% for group in muscle_groups %}<option value="{{ group }}">{{ group }}</option>{% endfor %}</select></label>
+                {{ mode_select() }}
+                <button class="btn" type="submit">種目を登録</button>
+            </form>
+        </details>
+        <div class="filter-section" style="margin-top:18px;">
+            <label class="field-label">登録済み種目を検索<input class="field" type="search" data-filter-input placeholder="種目名・部位で検索"></label>
+            <div class="choice-scroll registered-scroll" data-filter-list>
+                {% for exercise in exercises %}
+                <div class="exercise-row" data-query="{{ exercise.name }} {{ exercise.muscle_group }}">
+                    <div style="min-width:0; flex:1;">{{ exercise.name }}<span class="muted">（{{ exercise.muscle_group }}）</span>
+                        <details style="margin-top:8px;"><summary class="muted" style="cursor:pointer;">記録方式：{{ recording_modes[exercise.recording_mode] }}</summary>
+                            <form method="POST" action="{{ url_for('change_recording_mode', exercise_id=exercise.id) }}" class="menu-tools" style="margin-top:10px;">
+                                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="menu_id" value="{{ selected_menu or '' }}">
+                                {{ mode_select(exercise.recording_mode) }}<button class="btn secondary" type="submit">方式を保存</button>
+                            </form>
+                        </details>
+                    </div>
+                    <form action="{{ url_for('delete_exercise', exercise_id=exercise.id) }}" method="POST" onsubmit="return confirm('この登録済み種目をメニューから削除しますか？過去の記録は残ります。');">
+                        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="menu_id" value="{{ selected_menu or '' }}">
+                        <button class="btn danger" type="submit" aria-label="{{ exercise.name }}を登録済み種目から削除">削除</button>
+                    </form>
+                </div>
+                {% endfor %}
             </div>
-        </li>
-        {% endfor %}
-    </ol>
-    {% else %}
-    <p style="color: #94a3b8;">まだ種目がありません。</p>
-    {% endif %}
-
-    <form action="{{ url_for('add_menu_item', day_id=day.id) }}" method="POST" style="border-top: 1px solid #334155; padding-top: 16px;">
-        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
-        <label style="display: block; color: #94a3b8; font-size: 13px; margin-bottom: 8px;">種目</label>
-        <select name="exercise_id" required style="width: 100%; padding: 11px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; margin-bottom: 12px;">
-            {% for exercise in exercises %}<option value="{{ exercise.id }}">{{ exercise.name }}（{{ exercise.muscle_group }}）</option>{% endfor %}
-        </select>
-        <div style="display: flex; gap: 10px; margin-bottom: 12px;">
-            <div style="flex: 1;"><label style="display: block; color: #94a3b8; font-size: 12px; margin-bottom: 6px;">セット</label><input type="number" name="sets" min="1" max="20" value="3" required style="width: 100%; box-sizing: border-box; padding: 10px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff;"></div>
-            <div style="flex: 1;"><label style="display: block; color: #94a3b8; font-size: 12px; margin-bottom: 6px;">最低回数</label><input type="number" name="rep_min" min="1" max="100" value="8" required style="width: 100%; box-sizing: border-box; padding: 10px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff;"></div>
-            <div style="flex: 1;"><label style="display: block; color: #94a3b8; font-size: 12px; margin-bottom: 6px;">最高回数</label><input type="number" name="rep_max" min="1" max="100" value="12" required style="width: 100%; box-sizing: border-box; padding: 10px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff;"></div>
+            <p class="muted" data-filter-empty {% if exercises %}hidden{% endif %}>該当する種目がありません。</p>
         </div>
-        <button type="submit" style="width: 100%; padding: 12px; border: 0; border-radius: 8px; background: #38bdf8; color: #0f172a; font-weight: 700; cursor: pointer;">{{ day.name }}に追加</button>
-    </form>
-</section>
-{% endfor %}
+        <p class="muted">通常は「重量＋回数」です。変えたい種目だけ記録方式を変更できます。過去の記録は当時の方式で残ります。種目の削除後も記録は残ります。</p>
+    </div>
+</details>
+
+<div class="filter-section" id="saved-menus">
+    <label class="field-label">保存済みメニューを検索<input class="field" type="search" data-filter-input placeholder="メニュー名で検索" style="margin-bottom:14px;"></label>
+    <div data-filter-list>
+    {% for day in plans %}
+    <details class="panel saved-menu" id="menu-{{ day.id }}" data-menu-id="{{ day.id }}" data-query="{{ day.name }}" {% if day.id == selected_menu %}open{% endif %}>
+        <summary class="menu-summary"><strong>{{ day.name }}</strong> <span class="muted">· {{ day.items|length }}枠</span></summary>
+        <div class="menu-content">
+            <form action="{{ url_for('start_workout') }}" method="POST">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="workout_day_id" value="{{ day.id }}">
+                <button class="btn" type="submit" style="width:100%;" {% if not day.items %}disabled{% endif %}>{{ day.name }}を開始</button>
+            </form>
+            <details class="menu-subsection">
+                <summary>メニュー名を変更</summary>
+                <form method="POST" action="{{ url_for('rename_menu', day_id=day.id) }}" class="menu-tools">
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                    <label class="field-label">メニュー名<input class="field" name="name" maxlength="30" value="{{ day.name }}" required></label>
+                    <button class="btn secondary" type="submit">名前を保存</button>
+                </form>
+            </details>
+            <form method="POST" action="{{ url_for('delete_menu', day_id=day.id) }}" style="margin:14px 0;" onsubmit="return confirm('このメニューと関連する予定を削除しますか？過去・実施中のトレーニング記録は残ります。');">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                <button class="btn danger" type="submit">このメニューを削除</button>
+            </form>
+
+            {% for item in day.items %}
+            <div class="menu-item">
+                <div class="menu-item-top">
+                    <span>{{ item.exercise.name }}{% for alternative in item.alternatives %} <strong style="color:#fbbf24;">or</strong> {{ alternative.exercise.name }}{% endfor %}<br><span class="muted">{{ item.sets }}セット × {{ item.rep_min }}〜{{ item.rep_max }}回</span></span>
+                    <form action="{{ url_for('delete_menu_item', item_id=item.id) }}" method="POST" onsubmit="return confirm('この枠をメニューから外しますか？');">
+                        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}"><button class="btn secondary" type="submit">外す</button>
+                    </form>
+                </div>
+                <div class="menu-item-actions">
+                    <form action="{{ url_for('move_menu_item', item_id=item.id) }}" method="POST">
+                        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                        <button class="btn secondary" type="submit" name="direction" value="up" {% if loop.first %}disabled{% endif %} aria-label="{{ item.exercise.name }}を上へ移動">↑ 上へ</button>
+                        <button class="btn secondary" type="submit" name="direction" value="down" {% if loop.last %}disabled{% endif %} aria-label="{{ item.exercise.name }}を下へ移動">↓ 下へ</button>
+                    </form>
+                </div>
+                <details class="menu-subsection">
+                    <summary>種目・セット数・回数・orを編集</summary>
+                    <form method="POST" action="{{ url_for('edit_menu_item', item_id=item.id) }}" class="menu-create-form menu-tools">
+                        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                        <label class="field-label">種目を検索<input class="field" type="search" data-primary-search placeholder="種目名・部位で検索"></label>
+                        <label class="field-label">種目<select class="field" name="exercise_id" required>{% for exercise in exercises %}<option value="{{ exercise.id }}" {% if exercise.id == item.exercise_id %}selected{% endif %}>{{ exercise.name }}（{{ exercise.muscle_group }}）</option>{% endfor %}</select></label>
+                        <div class="menu-sets">
+                            <label class="field-label">セット<input class="field" type="number" name="sets" min="1" max="20" value="{{ item.sets }}" required></label>
+                            <label class="field-label">最低回数<input class="field" type="number" name="rep_min" min="1" max="100" value="{{ item.rep_min }}" required></label>
+                            <label class="field-label">最高回数<input class="field" type="number" name="rep_max" min="1" max="100" value="{{ item.rep_max }}" required></label>
+                        </div>
+                        <details>
+                            <summary class="muted" style="cursor:pointer;">代わりにできる種目（or）</summary>
+                            {{ choices(exercises, selected_ids=item.alternatives|map(attribute='exercise_id')|list) }}
+                        </details>
+                        <p class="muted">候補は10種目まで。検索で隠れた選択も保存されます。</p>
+                        <button class="btn secondary" type="submit">変更を保存</button>
+                    </form>
+                </details>
+            </div>
+            {% else %}<p class="muted">種目を追加して、このメニューを作成してください。</p>{% endfor %}
+
+            <details class="menu-subsection" {% if not day.items %}open{% endif %}>
+                <summary>メニューに種目を追加</summary>
+                <form action="{{ url_for('add_menu_item', day_id=day.id) }}" method="POST" class="menu-create-form menu-tools">
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                    <label class="field-label">種目を検索<input class="field" type="search" data-primary-search placeholder="種目名・部位で検索"></label>
+                    <label class="field-label">種目<select class="field" name="exercise_id" required>{% for exercise in exercises %}<option value="{{ exercise.id }}">{{ exercise.name }}（{{ exercise.muscle_group }}）</option>{% endfor %}</select></label>
+                    <details>
+                        <summary class="muted" style="cursor:pointer;">代わりにできる種目（or）</summary>
+                        {{ choices(exercises) }}
+                    </details>
+                    <div class="menu-sets">
+                        <label class="field-label">セット<input class="field" type="number" name="sets" min="1" max="20" value="3" required></label>
+                        <label class="field-label">最低回数<input class="field" type="number" name="rep_min" min="1" max="100" value="8" required></label>
+                        <label class="field-label">最高回数<input class="field" type="number" name="rep_max" min="1" max="100" value="12" required></label>
+                    </div>
+                    <button class="btn" type="submit" {% if not exercises %}disabled{% endif %}>メニューに保存</button>
+                </form>
+            </details>
+        </div>
+    </details>
+    {% endfor %}
+    </div>
+    <p class="muted" data-filter-empty hidden>該当するメニューがありません。</p>
+</div>
+<p class="muted">種目・セット数・回数・or・並び順の変更は、次に開始するトレーニングから反映されます。</p>
+
+<script>
+(() => {
+    const normalize = value => value.normalize('NFKC').toLocaleLowerCase().trim();
+    document.querySelectorAll('.filter-section').forEach(section => {
+        const input = section.querySelector('[data-filter-input]');
+        const list = section.querySelector('[data-filter-list]');
+        const empty = section.querySelector(':scope > [data-filter-empty]');
+        const update = () => {
+            const query = normalize(input.value);
+            let count = 0;
+            [...list.children].forEach(row => {
+                row.hidden = !normalize(row.dataset.query || '').includes(query);
+                if (!row.hidden) count++;
+            });
+            if (empty) empty.hidden = count > 0;
+        };
+        input.addEventListener('input', update);
+        update();
+    });
+    document.querySelectorAll('input[type="search"]').forEach(input => {
+        input.addEventListener('keydown', event => { if (event.key === 'Enter') event.preventDefault(); });
+    });
+    document.querySelectorAll('.menu-create-form').forEach(form => {
+        const primary = form.querySelector('[name="exercise_id"]');
+        const update = () => form.querySelectorAll('[name="alternative_ids"]').forEach(input => {
+            input.disabled = input.value === primary.value;
+            if (input.disabled) input.checked = false;
+        });
+        primary.addEventListener('change', update);
+        const sourceOptions = [...primary.options].map(option => option.cloneNode(true));
+        form.querySelector('[data-primary-search]').addEventListener('input', event => {
+            const previous = primary.value;
+            const query = normalize(event.target.value);
+            const matches = sourceOptions.filter(option => normalize(option.textContent).includes(query));
+            const placeholder = document.createElement('option');
+            placeholder.value = '';
+            placeholder.textContent = matches.length ? '種目を選択してください' : '該当する種目がありません';
+            primary.replaceChildren(placeholder, ...matches.map(option => option.cloneNode(true)));
+            primary.value = matches.some(option => option.value === previous) ? previous : '';
+            update();
+        });
+        update();
+    });
+    const menus = [...document.querySelectorAll('.saved-menu')];
+    menus.forEach(menu => menu.addEventListener('toggle', () => {
+        if (!menu.open) return;
+        menus.forEach(other => { if (other !== menu) other.open = false; });
+        document.querySelectorAll('#exercise-management [name="menu_id"]').forEach(input => { input.value = menu.dataset.menuId; });
+    }));
+})();
+</script>
 {% endblock %}

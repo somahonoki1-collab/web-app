@@ -1,0 +1,555 @@
+{
+  "analysis_date": "2026-10-07",
+  "powerlifting": {
+    "source_url": "https://osf.io/download/ruwda/",
+    "source_bytes": 210413624,
+    "source_sha256": "e700adf6bfeb8ebea95aa0ff6522fcedb61dbc50718ed70d991be20e5f754a16",
+    "source_rows": 1026089,
+    "retained_records": 45811,
+    "retained_lifters": 9215,
+    "intervals": 22721,
+    "interval_lifters": 6545,
+    "train_intervals": 15881,
+    "test_intervals": 6840,
+    "train_lifters": 4577,
+    "test_lifters": 1968,
+    "one_month_intervals_28_to_45_days": 1170,
+    "lifts": {
+      "Squat": {
+        "no_change_gain_metrics": {
+          "mae_kg": 9.913157894736843,
+          "rmse_kg": 15.695063383748504,
+          "r_squared": -0.08399162111687253
+        },
+        "growth_model_gain_metrics": {
+          "mae_kg": 9.283770730080013,
+          "rmse_kg": 14.791681691690517,
+          "r_squared": 0.037202658514749354
+        },
+        "no_change_end_performance_metrics": {
+          "mae_kg": 9.913157894736843,
+          "rmse_kg": 15.695063383748504,
+          "r_squared": 0.9370500949702592
+        },
+        "growth_model_end_performance_metrics": {
+          "mae_kg": 9.283770730080013,
+          "rmse_kg": 14.791681691690519,
+          "r_squared": 0.9440881275937013
+        },
+        "median_test_gain_kg": 5.0,
+        "test_gain_iqr_kg": [
+          0.0,
+          10.0
+        ],
+        "test_median_predicted_gain_kg": 3.3311510020912767,
+        "test_nonpositive_expected_gain_fraction": 0.2902046783625731,
+        "coefficient_order": [
+          "intercept",
+          "ln_start_per_bw",
+          "ln_bw_per_75",
+          "age_minus_30_per_10",
+          "female",
+          "ln_1_plus_months",
+          "ln_1_plus_career_years",
+          "ln_start_per_bw_times_period",
+          "age_times_period",
+          "female_times_period",
+          "career_times_period"
+        ],
+        "exploratory_coefficients": [
+          0.11877081232052407,
+          -0.13233412636208508,
+          -0.08321342985501881,
+          0.004441240732484107,
+          -0.04168575360640055,
+          0.043153641897297895,
+          0.016071185939610006,
+          -0.029419957672796537,
+          -0.006271413116764067,
+          -0.014565143929812794,
+          -0.01167623998886904
+        ],
+        "six_to_twelve_month_descriptive_quartiles": [
+          {
+            "sex": "F",
+            "quartile": 1,
+            "intervals": 646,
+            "median_start_per_bw": 1.3677200223989907,
+            "median_gain_kg": 7.5,
+            "median_interval_days": 254.5
+          },
+          {
+            "sex": "F",
+            "quartile": 2,
+            "intervals": 646,
+            "median_start_per_bw": 1.684232689010929,
+            "median_gain_kg": 5.0,
+            "median_interval_days": 252.0
+          },
+          {
+            "sex": "F",
+            "quartile": 3,
+            "intervals": 646,
+            "median_start_per_bw": 1.9312551236919515,
+            "median_gain_kg": 5.0,
+            "median_interval_days": 248.0
+          },
+          {
+            "sex": "F",
+            "quartile": 4,
+            "intervals": 646,
+            "median_start_per_bw": 2.287936607457133,
+            "median_gain_kg": 2.5,
+            "median_interval_days": 258.0
+          },
+          {
+            "sex": "M",
+            "quartile": 1,
+            "intervals": 1583,
+            "median_start_per_bw": 1.8696069031639502,
+            "median_gain_kg": 10.0,
+            "median_interval_days": 253.0
+          },
+          {
+            "sex": "M",
+            "quartile": 2,
+            "intervals": 1582,
+            "median_start_per_bw": 2.214822624692234,
+            "median_gain_kg": 5.0,
+            "median_interval_days": 259.0
+          },
+          {
+            "sex": "M",
+            "quartile": 3,
+            "intervals": 1582,
+            "median_start_per_bw": 2.4866987406254424,
+            "median_gain_kg": 5.0,
+            "median_interval_days": 258.0
+          },
+          {
+            "sex": "M",
+            "quartile": 4,
+            "intervals": 1582,
+            "median_start_per_bw": 2.852485737571312,
+            "median_gain_kg": 2.5,
+            "median_interval_days": 255.0
+          }
+        ]
+      },
+      "Bench": {
+        "no_change_gain_metrics": {
+          "mae_kg": 5.894078947368421,
+          "rmse_kg": 9.191252913338804,
+          "r_squared": -0.05414745135829757
+        },
+        "growth_model_gain_metrics": {
+          "mae_kg": 5.675172751872381,
+          "rmse_kg": 8.795654694578642,
+          "r_squared": 0.03464228391116242
+        },
+        "no_change_end_performance_metrics": {
+          "mae_kg": 5.894078947368421,
+          "rmse_kg": 9.191252913338804,
+          "r_squared": 0.9605989217870763
+        },
+        "growth_model_end_performance_metrics": {
+          "mae_kg": 5.675172751872381,
+          "rmse_kg": 8.795654694578642,
+          "r_squared": 0.9639176333196509
+        },
+        "median_test_gain_kg": 2.5,
+        "test_gain_iqr_kg": [
+          -2.5,
+          5.0
+        ],
+        "test_median_predicted_gain_kg": 1.8267095221510674,
+        "test_nonpositive_expected_gain_fraction": 0.24736842105263157,
+        "coefficient_order": [
+          "intercept",
+          "ln_start_per_bw",
+          "ln_bw_per_75",
+          "age_minus_30_per_10",
+          "female",
+          "ln_1_plus_months",
+          "ln_1_plus_career_years",
+          "ln_start_per_bw_times_period",
+          "age_times_period",
+          "female_times_period",
+          "career_times_period"
+        ],
+        "exploratory_coefficients": [
+          0.029297488877834118,
+          -0.05075811162278011,
+          -0.07009200414584824,
+          0.009172444183151976,
+          -0.05214283853581134,
+          0.03374004412678036,
+          0.01263486360817514,
+          -0.03998756536710421,
+          -0.008459259524409148,
+          -0.005680338886405303,
+          -0.009712558004134595
+        ],
+        "six_to_twelve_month_descriptive_quartiles": [
+          {
+            "sex": "F",
+            "quartile": 1,
+            "intervals": 646,
+            "median_start_per_bw": 0.7754085335738368,
+            "median_gain_kg": 3.75,
+            "median_interval_days": 252.0
+          },
+          {
+            "sex": "F",
+            "quartile": 2,
+            "intervals": 646,
+            "median_start_per_bw": 0.9729993278233784,
+            "median_gain_kg": 2.5,
+            "median_interval_days": 254.5
+          },
+          {
+            "sex": "F",
+            "quartile": 3,
+            "intervals": 646,
+            "median_start_per_bw": 1.131638312546698,
+            "median_gain_kg": 2.5,
+            "median_interval_days": 252.5
+          },
+          {
+            "sex": "F",
+            "quartile": 4,
+            "intervals": 646,
+            "median_start_per_bw": 1.4064697609001409,
+            "median_gain_kg": 2.5,
+            "median_interval_days": 258.0
+          },
+          {
+            "sex": "M",
+            "quartile": 1,
+            "intervals": 1583,
+            "median_start_per_bw": 1.2877939529675253,
+            "median_gain_kg": 5.0,
+            "median_interval_days": 252.0
+          },
+          {
+            "sex": "M",
+            "quartile": 2,
+            "intervals": 1582,
+            "median_start_per_bw": 1.5246807761171768,
+            "median_gain_kg": 2.5,
+            "median_interval_days": 253.0
+          },
+          {
+            "sex": "M",
+            "quartile": 3,
+            "intervals": 1582,
+            "median_start_per_bw": 1.715686274509804,
+            "median_gain_kg": 2.5,
+            "median_interval_days": 258.5
+          },
+          {
+            "sex": "M",
+            "quartile": 4,
+            "intervals": 1582,
+            "median_start_per_bw": 1.978319783197832,
+            "median_gain_kg": 0.0,
+            "median_interval_days": 262.0
+          }
+        ],
+        "start_below_0_8_bw_intervals": 1195,
+        "start_below_0_6_bw_intervals": 163
+      },
+      "Deadlift": {
+        "no_change_gain_metrics": {
+          "mae_kg": 10.306213450292399,
+          "rmse_kg": 15.708564868692433,
+          "r_squared": -0.04855107032505179
+        },
+        "growth_model_gain_metrics": {
+          "mae_kg": 10.236305786007248,
+          "rmse_kg": 15.222924293785695,
+          "r_squared": 0.015280034572212498
+        },
+        "no_change_end_performance_metrics": {
+          "mae_kg": 10.306213450292399,
+          "rmse_kg": 15.708564868692433,
+          "r_squared": 0.9341309343969899
+        },
+        "growth_model_end_performance_metrics": {
+          "mae_kg": 10.236305786007248,
+          "rmse_kg": 15.222924293785695,
+          "r_squared": 0.9381407488495059
+        },
+        "median_test_gain_kg": 5.0,
+        "test_gain_iqr_kg": [
+          -2.5,
+          10.0
+        ],
+        "test_median_predicted_gain_kg": 1.9107610678739335,
+        "test_nonpositive_expected_gain_fraction": 0.39283625730994154,
+        "coefficient_order": [
+          "intercept",
+          "ln_start_per_bw",
+          "ln_bw_per_75",
+          "age_minus_30_per_10",
+          "female",
+          "ln_1_plus_months",
+          "ln_1_plus_career_years",
+          "ln_start_per_bw_times_period",
+          "age_times_period",
+          "female_times_period",
+          "career_times_period"
+        ],
+        "exploratory_coefficients": [
+          0.15207599186399495,
+          -0.13473560187063527,
+          -0.12939771054806518,
+          0.01321568353457046,
+          -0.05676932091792086,
+          0.04951928613926132,
+          0.007581846072831428,
+          -0.04090602460265738,
+          -0.009529118864487526,
+          -0.012643679357040027,
+          -0.005775738219790674
+        ],
+        "six_to_twelve_month_descriptive_quartiles": [
+          {
+            "sex": "F",
+            "quartile": 1,
+            "intervals": 646,
+            "median_start_per_bw": 1.6427426739926738,
+            "median_gain_kg": 7.5,
+            "median_interval_days": 253.0
+          },
+          {
+            "sex": "F",
+            "quartile": 2,
+            "intervals": 646,
+            "median_start_per_bw": 2.0164094396339003,
+            "median_gain_kg": 5.0,
+            "median_interval_days": 250.5
+          },
+          {
+            "sex": "F",
+            "quartile": 3,
+            "intervals": 648,
+            "median_start_per_bw": 2.32175609630803,
+            "median_gain_kg": 5.0,
+            "median_interval_days": 258.0
+          },
+          {
+            "sex": "F",
+            "quartile": 4,
+            "intervals": 644,
+            "median_start_per_bw": 2.705836876691148,
+            "median_gain_kg": 2.5,
+            "median_interval_days": 256.0
+          },
+          {
+            "sex": "M",
+            "quartile": 1,
+            "intervals": 1583,
+            "median_start_per_bw": 2.143205065757428,
+            "median_gain_kg": 7.5,
+            "median_interval_days": 254.0
+          },
+          {
+            "sex": "M",
+            "quartile": 2,
+            "intervals": 1582,
+            "median_start_per_bw": 2.5221110758674876,
+            "median_gain_kg": 5.0,
+            "median_interval_days": 252.5
+          },
+          {
+            "sex": "M",
+            "quartile": 3,
+            "intervals": 1582,
+            "median_start_per_bw": 2.844638949671772,
+            "median_gain_kg": 5.0,
+            "median_interval_days": 253.0
+          },
+          {
+            "sex": "M",
+            "quartile": 4,
+            "intervals": 1582,
+            "median_start_per_bw": 3.2653061224489797,
+            "median_gain_kg": 2.5,
+            "median_interval_days": 259.0
+          }
+        ]
+      }
+    }
+  },
+  "meta_extracted_data": {
+    "source_url": "https://osf.io/download/86g9r/",
+    "rows": 710,
+    "strength_rows": 490,
+    "strength_studies": 69,
+    "strength_measures": [
+      "45deg Back Extension MVIC",
+      "45deg Hack Squat 1RM",
+      "45deg Leg Press 10RM",
+      "Arm Curl 1RM",
+      "Barbell Back Squat 1RM",
+      "Bench Press 10RM",
+      "Bench Press 1RM",
+      "Bench Press 1RM (estimated from 1RM-8RM)",
+      "Bench Press 5RM",
+      "Bench Press Estimated 1RM (from 3-5 RM)",
+      "Bench Press Peak Force",
+      "Bicep Curl 1RM",
+      "Biceps Curl Machine 1RM",
+      "Biceps Peak Torque at 55 Deg. Arm Flexion",
+      "Calf Raise 1RM",
+      "Chest Press 1RM",
+      "Chest Press1RM",
+      "DB OHP Estimated 1RM (from 3-5 RM)",
+      "Deadlift 1RM",
+      "Dumbbell Preacher Curl 1RM",
+      "Elbow Extension 1RM",
+      "Elbow Flexion 1RM",
+      "Elbow Flexion Peak Torque",
+      "Elbow Flexion Peak Torque (60°/s)",
+      "Hack Squat 1RM",
+      "Half Squat 1RM",
+      "Isolated Lumbar Extension Strength (N*m)",
+      "Knee Extension 1RM",
+      "Knee Extension 1RM (estimated from 4RM)",
+      "Knee Extension 60° Peak Torque",
+      "Knee Extension MVC (110 degrees)",
+      "Knee Extension MVC (peak across various angles)",
+      "Knee Extension Peak Torque",
+      "Knee Extension Peak Torque (180°/s)",
+      "Knee Extension Peak Torque (60°/s)",
+      "Knee Extension Peak Torque at 24 Deg. Knee Flexion",
+      "Knee Extension Peak Torque at 42 Deg. Knee Flexion",
+      "Knee Extension Peak Torque at 6 Deg. Knee Flexion",
+      "Knee Extension Peak Torque at 60 Deg. Knee Flexion",
+      "Knee Extension Peak Torque at 78 Deg. Knee Flexion",
+      "Knee Extension Peak Torque at 96 Deg. Knee Flexion",
+      "Knee Extension Peak Torque at Maximal Knee Flexion",
+      "Knee Extension Torque",
+      "Knee Extension peak torque",
+      "Knee Flexion Peak Torque at 24 Deg. Knee Flexion",
+      "Knee Flexion Peak Torque at 42 Deg. Knee Flexion",
+      "Knee Flexion Peak Torque at 6 Deg. Knee Flexion",
+      "Knee Flexion Peak Torque at 60 Deg. Knee Flexion",
+      "Knee Flexion Peak Torque at 78 Deg. Knee Flexion",
+      "Knee Flexion Peak Torque at 96 Deg. Knee Flexion",
+      "Knee Flexion Peak Torque at Maximal Knee Flexion",
+      "Knee Flexion peak torque",
+      "Lat Pulldown 1RM",
+      "Lat Pulldown 5RM",
+      "Lat Pulldown Estimated 1RM (from 3-5 RM)",
+      "Lateral Raise 1RM",
+      "Left Unilateral Peak Knee Extensor Torque (60°/s)",
+      "Left Unilateral Peak Knee Flexor Torque (60°/s)",
+      "Leg Curl 10RM",
+      "Leg Curl 1RM",
+      "Leg Extension 1RM",
+      "Leg Extension 1RM (left leg)",
+      "Leg Extension 1RM (right leg)",
+      "Leg Extension Estimated 1RM",
+      "Leg Press 10RM",
+      "Leg Press 1RM",
+      "Leg Press 1RM (estimated from 1RM-8RM)",
+      "Leg Press 5RM",
+      "Leg Press Estimated 1RM (from 3-5 RM)",
+      "Machine Chest Press 10RM",
+      "Machine Row 1RM",
+      "Overhead Press Machine 1RM",
+      "Preacher Bicep Curl 1RM",
+      "Pull-down 1RM",
+      "Pulldown 1RM",
+      "RDL Estimated 1RM (from 3-5 RM)",
+      "Right Unilateral Peak Knee Extensor Torque (60°/s)",
+      "Right Unilateral Peak Knee Flexor Torque (60°/s)",
+      "Row 1RM",
+      "Seated Bench Press Machine 1RM",
+      "Seated Row 10RM",
+      "Seated Row Estimated 1RM (from 3-5 RM)",
+      "Shoulder Press 10RM",
+      "Shoulder Press 1RM",
+      "Shoulder Press 5RM",
+      "Smith Machine Squat 1RM",
+      "Squat 10RM",
+      "Squat 1RM",
+      "Torso Rotation MVC (-18deg)",
+      "Torso Rotation MVC (-36deg)",
+      "Torso Rotation MVC (-54deg)",
+      "Torso Rotation MVC (0deg)",
+      "Torso Rotation MVC (18deg)",
+      "Torso Rotation MVC (36deg)",
+      "Torso Rotation MVC (54deg)",
+      "Tricep Press 1RM",
+      "Unilateral 45deg Leg Press 1RM",
+      "Unilateral Elbow Extension Peak Torque (60°/s)",
+      "Unilateral Elbow Flexion Peak Torque (60°/s)",
+      "Unilateral Isokinetic Leg Extension Peak Torque (1.05 rad/sec)",
+      "Unilateral Isokinetic Leg Extension Peak Torque (3.14 rad/sec)",
+      "Unilateral Isokinetic Leg Extension Peak Torque (5.24 rad/sec)",
+      "Unilateral Isokinetic Leg Extension Peak Torque (8.73 rad/sec)",
+      "Unilateral Isometric (45deg) Leg Extension Peak Torque",
+      "Unilateral Knee-extension MVC ",
+      "Unilateral Knee-extension Maximal Torque (120°/s)",
+      "Unilateral Knee-extension Maximal Torque (240°/s)",
+      "Unilateral Knee-extension Maximal Torque (60°/s)",
+      "Unilateral Leg Extension 1RM",
+      "Unilateral Leg Press (Left Leg) 1RM",
+      "Unilateral Leg Press (Right Leg) 1RM",
+      "Unilateral Leg Press 1RM",
+      "Upright Row 1RM",
+      "Wide-Grip Front Pulldown 10RM",
+      "isokinetic knee extension peak torque at 60 deg./sec",
+      "knee extension peak torque at 108deg",
+      "knee extension peak torque at 24deg",
+      "knee extension peak torque at 42deg",
+      "knee extension peak torque at 60deg",
+      "knee extension peak torque at 6deg",
+      "knee extension peak torque at 78deg",
+      "knee extension peak torque at 96deg",
+      "knee flexion peak torque at 108deg",
+      "knee flexion peak torque at 24deg",
+      "knee flexion peak torque at 42deg",
+      "knee flexion peak torque at 60deg",
+      "knee flexion peak torque at 6deg",
+      "knee flexion peak torque at 78deg",
+      "knee flexion peak torque at 96deg"
+    ],
+    "strength_median_weeks": 10.0,
+    "strength_max_weeks": 32.0,
+    "strength_missing_body_mass_fraction": 0.014285714285714285,
+    "strength_missing_years_exp_fraction": 0.6938775510204082,
+    "strength_training_status_counts": {
+      "untrained": 253,
+      "trained": 237
+    },
+    "bench_group_descriptive_summary": [
+      {
+        "status": "trained",
+        "group_rows": 43,
+        "study_ids": 20,
+        "median_weeks": 8.0,
+        "median_group_growth_percent": 9.673545146850081
+      },
+      {
+        "status": "untrained",
+        "group_rows": 15,
+        "study_ids": 6,
+        "median_weeks": 6.0,
+        "median_group_growth_percent": 10.260115606936404
+      }
+    ],
+    "unit_of_data": "Study-group-outcome means, not individual participants; rows are dependent."
+  },
+  "limitations": [
+    "Exploratory, no external validation or hyperparameter selection.",
+    "Competition participation is not training experience.",
+    "Selection requires at least three meets and successful SBD; survivorship bias.",
+    "Name and sex are imperfect identifiers; no app users or private data included.",
+    "Intervals are repeated observations; metrics weight test intervals equally.",
+    "No causal interpretation, novice-generalization, or competition fairness claim."
+  ]
+}

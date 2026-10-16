@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+    .growth-header h1 { font-size: 26px; margin: 4px 0 8px; }
+    .growth-header { margin-bottom: 22px; }
+    .growth-link { color: #38bdf8; text-decoration: none; }
+    .growth-title { font-size: 18px; margin: 0 0 12px; overflow-wrap: anywhere; }
+    .growth-stack { display: grid; gap: 14px; }
+    .growth-stack p { margin: 0; }
+    .growth-badge { display: inline-block; font-size: 12px; padding: 4px 8px; border-radius: 6px; background: #334155; color: #cbd5e1; }
+    .growth-badge.live { color: #fde68a; background: #713f12; }
+    .growth-badge.done { color: #bbf7d0; background: #14532d; }
+    .growth-box { background: #0f172a; border: 1px solid #334155; border-radius: 10px; padding: 12px; min-width: 0; }
+    .growth-exercise { padding: 14px 0; border-top: 1px solid #334155; min-width: 0; }
+    .growth-exercise .two-fields { margin-top: 12px; }
+    .growth-exercise label { overflow-wrap: anywhere; }
+    .growth-rule { font-size: 12px; line-height: 1.8; color: #cbd5e1; overflow-wrap: anywhere; }
+    .growth-rule summary { cursor: pointer; color: #bae6fd; }
+    .growth-rule ul { padding-left: 20px; }
+    .growth-table-scroll { overflow-x: auto; max-width: 100%; margin: 12px 0; }
+    .growth-table { width: 100%; min-width: 570px; border-collapse: collapse; text-align: left; font-size: 12px; }
+    .growth-table th, .growth-table td { padding: 10px 7px; border-bottom: 1px solid #334155; vertical-align: top; }
+    .growth-table th { color: #94a3b8; font-weight: 400; }
+    .growth-table .mine { background: rgba(56, 189, 248, .08); }
+    .growth-table .points { color: #fbbf24; font-weight: 700; }
+    .growth-number { color: #f8fafc; white-space: nowrap; }
+    .growth-sub { display: block; margin-top: 4px; color: #94a3b8; }
+    .growth-code { font-size: 22px; letter-spacing: 2px; overflow-wrap: anywhere; user-select: all; }
+    .growth-chart { display: block; width: 100%; height: auto; }
+    .growth-legend { display: flex; flex-wrap: wrap; gap: 10px; font-size: 12px; margin-top: 10px; }
+    .growth-legend span { display: inline-flex; align-items: center; gap: 5px; overflow-wrap: anywhere; }
+    .growth-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .growth-records { max-height: 280px; overflow-y: auto; margin-top: 14px; }
+    .growth-record-row { font-size: 12px; border-top: 1px solid #334155; padding: 9px 0; overflow-wrap: anywhere; }
+    .growth-plot-panel { margin-top: 18px; }
+    .growth-muted-list { padding-left: 20px; color: #94a3b8; font-size: 13px; line-height: 1.8; }
+    .growth-help { color: #94a3b8; font-size: 12px; line-height: 1.8; }
+    @media (max-width: 360px) {
+        .growth-header h1 { font-size: 22px; }
+        .growth-code { font-size: 18px; letter-spacing: 1px; }
+    }
+</style>
+{% block growth_content %}{% endblock %}
+{% endblock %}

@@ -1,8 +1,36 @@
 {% extends "base.html" %}
+{% from 'recording_fields.html' import editor, editor_script, mode_select with context %}
+
+{% macro saved_set(saved, workout_session) %}
+{% include 'workout_saved_set.html' %}
+{% endmacro %}
+
+{% macro set_recipe() %}
+<div class="workout-recipe">
+    <label class="field-label">セット数<input class="field" type="number" name="sets" value="3" min="1" max="20" required></label>
+    <label class="field-label">最低回数<input class="field" type="number" name="rep_min" value="8" min="1" max="100" required></label>
+    <label class="field-label">最高回数<input class="field" type="number" name="rep_max" value="12" min="1" max="100" required></label>
+</div>
+{% endmacro %}
 
 {% block content %}
+<style>
+    .workout-fields { display:flex; flex-wrap:wrap; align-items:end; gap:10px; margin-top:12px; }
+    .workout-card form > .field-label { flex:1; min-width:100px; }
+    .workout-fields .field-label { flex:1; min-width:100px; margin:0; }
+    .workout-recipe { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+    .workout-recipe > label { min-width:0; }
+    .workout-tools { display:grid; gap:12px; margin-top:14px; }
+    .workout-edit { margin-top:10px; }
+    .workout-card { scroll-margin-top:16px; overflow-wrap:anywhere; }
+    [data-set-row] { scroll-margin-top:16px; }
+    .recording-editor { flex:1 1 100%; min-width:0; display:grid; gap:8px; }
+    .bulk-tools { display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin:14px 0; }
+    #workout-save-status { position:fixed; top:12px; left:50%; transform:translateX(-50%); z-index:1100; width:min(420px,calc(100% - 40px)); box-sizing:border-box; border-radius:10px; padding:12px; background:#14532d; color:#dcfce7; box-shadow:0 4px 16px #0006; }
+    #workout-save-status[hidden] { display:none; }
+</style>
 <div class="app-header">
-    <h1 style="font-size: 28px; font-weight: 900; text-align: center;">{{ workout_session.workout_day.name }} WORKOUT</h1>
+    <h1 style="font-size: 28px; font-weight: 900; text-align: center; overflow-wrap:anywhere;">{{ workout_session.display_name }} WORKOUT</h1>
     <p style="text-align: center; color: #94a3b8; font-size: 14px;">開始：{{ workout_session.started_at.strftime('%Y-%m-%d %H:%M') }}</p>
 </div>
 
@@ -11,69 +39,281 @@
     トレーニング完了：{{ workout_session.completed_at.strftime('%Y-%m-%d %H:%M') }}
 </section>
 <p><a class="btn" href="{{ url_for('recovery_page') }}">鍛えた部位の回復状態を記録</a></p>
+{% elif workout_session.paused_at %}
+<section class="panel">
+    <p class="muted">トレーニングは中断中です。保存済みのセットから再開できます。</p>
+    <form method="POST" action="{{ url_for('resume_workout', session_id=workout_session.id) }}">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}"><button class="btn" type="submit">トレーニングを再開</button>
+    </form>
+</section>
 {% else %}
 <section class="card" style="background: #1e293b; border-radius: 16px; padding: 18px; margin-bottom: 20px;">
     <p style="color: #cbd5e1; margin-top: 0;">前回の同じ種目の記録を参考に、各セットを記録してください。重量の提案は現時点では目安です。</p>
+    <p class="muted">セットごとに記録方式を選べます。保存すると、その場で記録済みに切り替わります。</p>
+    <a class="btn secondary" href="#add-exercise">今回の種目を追加</a>
+    <div class="bulk-tools"><button class="btn" type="button" data-save-selected>選んだセットをまとめて記録</button></div>
+    <p class="muted">各セットの「まとめて記録する」にチェックして保存します。種目をまたいで選択できます。</p>
     {% if workout_session.schedule %}<p style="color: #94a3b8; font-size: 13px;">予定日：{{ workout_session.schedule.scheduled_date.strftime('%Y-%m-%d') }}</p>{% endif %}
 </section>
 {% endif %}
+<div id="workout-save-status" role="status" aria-live="polite" hidden></div>
 
 {% for entry in workout_items %}
 {% set item = entry.item %}
-<section class="card" style="background: #1e293b; border-radius: 16px; padding: 18px; margin-bottom: 16px;">
+<section class="card workout-card" id="exercise-{{ item.id }}" style="background: #1e293b; border-radius: 16px; padding: 18px; margin-bottom: 16px;">
     <h2 style="font-size: 20px; margin: 0 0 6px;">{{ item.exercise.name }}</h2>
-    <p style="color: #94a3b8; margin: 0 0 12px;">{{ item.muscle_group }} · メニュー {{ item.sets }}セット × {{ item.rep_min }}〜{{ item.rep_max }}回</p>
+    <p style="color: #94a3b8; margin: 0 0 12px;">{{ item.muscle_group }} · 今回 {{ item.sets }}セット × {{ item.rep_min }}〜{{ item.rep_max }}回</p>
+    <p class="muted">初期の記録方式：{{ recording_modes[item.exercise.recording_mode] }}（セットごとに変更できます）</p>
+    {% if not workout_session.completed_at and not workout_session.paused_at %}
+    <details style="margin-bottom:14px;">
+        <summary class="muted" style="cursor:pointer;">種目の初期の記録方式を変更</summary>
+        <form method="POST" action="{{ url_for('change_recording_mode', exercise_id=item.exercise_id) }}" class="workout-fields">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="session_id" value="{{ workout_session.id }}">
+            {{ mode_select(item.exercise.recording_mode) }}<button class="btn secondary" type="submit">方式を保存</button>
+        </form>
+        <p class="muted">この種目の今後の入力に反映します。保存済みセットは当時の方式で編集できます。</p>
+    </details>
+    {% if item.exercise.recording_mode == 'bodyweight' %}<p class="muted">体重＋加重−補助を記録上の重量にします。加重・補助なしは0kg。体重はこのセットの値として保存されます。</p>
+    {% elif item.exercise.recording_mode == 'negative' %}<p class="muted">下ろす動作の重量と回数を記録します。通常の記録と分け、推定1RMは計算しません。</p>{% endif %}
+    <form method="POST" action="{{ url_for('move_workout_item', session_id=workout_session.id, item_id=item.id) }}" style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px;">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+        <button class="btn secondary" type="submit" name="direction" value="up" {% if loop.first %}disabled{% endif %} aria-label="{{ item.exercise.name }}を上へ移動">↑ 上へ</button>
+        <button class="btn secondary" type="submit" name="direction" value="down" {% if loop.last %}disabled{% endif %} aria-label="{{ item.exercise.name }}を下へ移動">↓ 下へ</button>
+    </form>
+    {% endif %}
+    {% if item.is_skipped %}
+    <p class="muted">今回はスキップしています。保存済みの{{ entry.completed_sets|length }}セットは残しています。</p>
+    {% if not workout_session.completed_at and not workout_session.paused_at %}
+    <form method="POST" action="{{ url_for('skip_workout_item', session_id=workout_session.id, item_id=item.id) }}">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="action" value="restore">
+        <button class="btn secondary" type="submit">スキップを解除して再開</button>
+    </form>
+    {% endif %}
+    {% for set_number, saved in entry.completed_sets|dictsort %}
+    <div id="set-{{ item.id }}-{{ set_number }}" data-set-row style="border-top:1px solid #334155; margin-top:12px; padding-top:12px;">
+        <strong>{{ set_number }}セット目</strong><div data-set-content>{{ saved_set(saved, workout_session) }}</div>
+    </div>
+    {% endfor %}
+    {% else %}
+    {% if not workout_session.completed_at and not workout_session.paused_at %}
+    <details style="margin-bottom:14px;">
+        <summary class="muted" style="cursor:pointer;">今回のセット数を変更</summary>
+        <form method="POST" action="{{ url_for('change_workout_sets', session_id=workout_session.id, item_id=item.id) }}" class="workout-fields">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+            <label class="field-label">セット数<input class="field" type="number" name="sets" min="{{ entry.minimum_sets }}" max="20" value="{{ item.sets }}" required></label>
+            <button class="btn secondary" type="submit">セット数を保存</button>
+        </form>
+        <p class="muted">記録済みのセットを減らしたい場合は、先にそのセットの記録を削除してください。</p>
+    </details>
+    <form method="POST" action="{{ url_for('skip_workout_item', session_id=workout_session.id, item_id=item.id) }}" style="margin-bottom:14px;">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="action" value="skip">
+        <button class="btn secondary" type="submit">{{ '残りのセットをスキップ' if entry.completed_sets else 'この種目をスキップ' }}</button>
+    </form>
+    {% endif %}
+    {% if entry.options|length > 1 %}
+    <div class="panel" style="background:#0f172a; padding:12px;">
+        <p class="muted" style="margin-top:0;">{% for option in entry.options %}{{ option.exercise.name }}{% if not loop.last %} <strong style="color:#fbbf24;">or</strong> {% endif %}{% endfor %}</p>
+        {% if not entry.completed_sets and not workout_session.completed_at and not workout_session.paused_at %}
+        <form method="POST" action="{{ url_for('choose_workout_exercise', session_id=workout_session.id, item_id=item.id) }}">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+            <label class="field-label">今日行う種目<select class="field" name="exercise_id">{% for option in entry.options %}<option value="{{ option.exercise_id }}" {% if option.exercise_id == item.exercise_id %}selected{% endif %}>{{ option.exercise.name }}</option>{% endfor %}</select></label>
+            <button type="submit" class="btn secondary">この種目で行う</button>
+        </form>
+        <p class="muted">最初のセット前に選択してください。前回記録と目標は、選んだ種目の記録を使います。</p>
+        {% else %}<p class="muted">今回の種目：{{ item.exercise.name }}。{% if workout_session.paused_at and not entry.completed_sets %}再開後、最初のセット前に選べます。{% else %}セット記録後は変更できません。{% endif %}</p>{% endif %}
+    </div>
+    {% endif %}
 
     {% if entry.previous_log %}
     <div style="background: #0f172a; border-radius: 8px; padding: 12px; margin-bottom: 14px; color: #cbd5e1; font-size: 13px;">
-        前回：{{ entry.previous_log.date.strftime('%Y-%m-%d') }} · {{ entry.previous_log.weight }}kg × {{ entry.previous_log.reps }}回
-        {% if entry.target_weight %}<br>今回の目安：{{ entry.target_weight }}kg × {{ entry.next_reps }}回<br>{{ entry.target_reason }}{% endif %}
+        前回：{{ entry.previous_log.date.strftime('%Y-%m-%d') }} · {{ record_text(entry.previous_log) }}
+        <br>{{ entry.target_reason }}
         <table class="target-table" aria-label="{{ item.exercise.name }}の前回の全セット">
-            <thead><tr><th>前回のセット</th><th>重量</th><th>回数</th></tr></thead>
-            <tbody>{% for previous in entry.previous_sets %}<tr><td>{{ previous.set_number }}セット目</td><td>{{ previous.weight }}kg</td><td>{{ previous.reps }}回</td></tr>{% endfor %}</tbody>
+            <thead><tr><th>前回のセット</th><th>記録</th></tr></thead>
+            <tbody>{% for previous in entry.previous_sets %}<tr><td>{{ previous.set_number }}セット目</td><td>{{ record_text(previous) }}</td></tr>{% endfor %}</tbody>
         </table>
     </div>
     {% else %}
-    <div style="background: #0f172a; border-radius: 8px; padding: 12px; margin-bottom: 14px; color: #cbd5e1; font-size: 13px;">前回記録がありません。無理のない重量を選んでください。</div>
+    <div style="background: #0f172a; border-radius: 8px; padding: 12px; margin-bottom: 14px; color: #cbd5e1; font-size: 13px;">前回記録がありません。設定した回数の下限を目安に記録してください。</div>
     {% endif %}
 
     {% for set_number in range(1, item.sets + 1) %}
     {% set saved = entry.completed_sets.get(set_number) %}
     {% set target = entry.targets[set_number - 1] %}
-    <div style="border-top: 1px solid #334155; padding: 12px 0;">
+    <div id="set-{{ item.id }}-{{ set_number }}" data-set-row style="border-top: 1px solid #334155; padding: 12px 0;">
         <strong>{{ set_number }}セット目</strong>
-        <p class="muted">今回の目標：{% if target.weight %}{{ target.weight }}kg{% else %}重量を選択{% endif %} × {{ target.reps }}回</p>
+        <div data-set-content>
         {% if saved %}
-        <span style="color: #86efac; margin-left: 8px;">記録済み：{{ saved.weight }}kg × {{ saved.reps }}回</span>
-        {% elif workout_session.completed_at %}
+        {{ saved_set(saved, workout_session) }}
+        {% elif workout_session.completed_at or workout_session.paused_at %}
         <span style="color: #94a3b8; margin-left: 8px;">未記録</span>
         {% else %}
-        <form action="{{ url_for('add_workout_set', session_id=workout_session.id) }}" method="POST" style="display: flex; flex-wrap: wrap; gap: 8px; align-items: end; margin-top: 8px;">
+        <p class="muted">初期方式での目標：{% if item.exercise.recording_mode == 'weight' %}{% if target.weight %}{{ target.weight }}kg{% else %}重量を選択{% endif %} × {% endif %}{{ target.reps }}回</p>
+        <form action="{{ url_for('add_workout_set', session_id=workout_session.id) }}" method="POST" data-set-entry data-item-id="{{ item.id }}" style="display: flex; flex-wrap: wrap; gap: 8px; align-items: end; margin-top: 8px;">
             <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="exercise_id" value="{{ item.exercise_id }}">
             <input type="hidden" name="set_number" value="{{ set_number }}">
             <input type="hidden" name="lift_type" value="{{ item.exercise.name }}">
             <input type="hidden" name="target_reps" value="{{ target.reps }}">
-            <label style="flex: 1; min-width: 90px; color: #94a3b8; font-size: 12px;">重量 (kg)
-                <input type="number" name="weight" min="0.1" max="1000" step="0.1" value="{{ target.weight if target.weight else '' }}" placeholder="重量" required style="width: 100%; box-sizing: border-box; padding: 9px; border-radius: 7px; border: 1px solid #334155; background: #0f172a; color: #fff;">
-            </label>
-            <label style="flex: 1; min-width: 80px; color: #94a3b8; font-size: 12px;">回数
-                <input type="number" name="reps" min="1" max="100" value="{{ target.reps }}" required style="width: 100%; box-sizing: border-box; padding: 9px; border-radius: 7px; border: 1px solid #334155; background: #0f172a; color: #fff;">
-            </label>
+            <label class="muted" style="flex-basis:100%;"><input type="checkbox" data-bulk-select> まとめて記録する</label>
+            {{ editor(item.exercise.recording_mode, target) }}
             <button type="submit" style="padding: 10px 14px; border: 0; border-radius: 7px; background: #38bdf8; color: #0f172a; font-weight: 700; cursor: pointer;">記録</button>
         </form>
         {% endif %}
+        </div>
     </div>
     {% endfor %}
+    {% if not workout_session.completed_at and not workout_session.paused_at %}
+    <div class="bulk-tools">
+        <label class="muted"><input type="checkbox" data-select-item="{{ item.id }}"> この種目の未記録セットをすべて選ぶ</label>
+        <button class="btn" type="button" data-save-selected data-item-id="{{ item.id }}">選んだセットをまとめて記録</button>
+    </div>
+    {% endif %}
+    {% endif %}
 </section>
 {% endfor %}
 
-{% if not workout_session.completed_at %}
+{% if not workout_session.completed_at and not workout_session.paused_at %}
+<section class="panel workout-card" id="add-exercise">
+    <h2 style="font-size:20px; margin-top:0;">今回のトレーニングに種目を追加</h2>
+    <details>
+        <summary class="muted" style="cursor:pointer;">登録済みの種目から追加</summary>
+        <form method="POST" action="{{ url_for('add_workout_item', session_id=workout_session.id) }}" class="workout-tools" id="add-existing-exercise">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="source" value="existing">
+            <label class="field-label">種目を検索<input class="field" type="search" id="workout-exercise-search" placeholder="種目名・部位で検索"></label>
+            <label class="field-label">追加する種目<select class="field" name="exercise_id" required>
+                <option value="">種目を選択してください</option>
+                {% for exercise in available_exercises %}<option value="{{ exercise.id }}">{{ exercise.name }}（{{ exercise.muscle_group }}）</option>{% endfor %}
+            </select></label>
+            {{ set_recipe() }}
+            <button class="btn" type="submit" {% if not available_exercises %}disabled{% endif %}>今回のトレーニングに追加</button>
+        </form>
+    </details>
+    <details style="margin-top:16px;">
+        <summary class="muted" style="cursor:pointer;">新しい種目を登録して追加</summary>
+        <form method="POST" action="{{ url_for('add_workout_item', session_id=workout_session.id) }}" class="workout-tools">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="source" value="new">
+            <label class="field-label">種目名<input class="field" name="name" maxlength="80" required placeholder="例：チェストプレス"></label>
+            <label class="field-label">主に鍛える部位<select class="field" name="muscle_group">{% for group in muscle_groups %}<option value="{{ group }}">{{ group }}</option>{% endfor %}</select></label>
+            {{ mode_select() }}
+            {{ set_recipe() }}
+            <button class="btn" type="submit">種目を登録して今回に追加</button>
+        </form>
+    </details>
+</section>
 <form action="{{ url_for('finish_workout', session_id=workout_session.id) }}" method="POST" onsubmit="return confirm('このトレーニングを完了にしますか？');" style="margin: 20px 0;">
     <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
     <button type="submit" style="width: 100%; padding: 14px; border: 0; border-radius: 9px; background: #22c55e; color: #052e16; font-weight: 800; cursor: pointer;">トレーニングを完了</button>
 </form>
 {% endif %}
 
+<div style="display:flex; flex-wrap:wrap; gap:10px; margin-top:16px;">
+    {% if not workout_session.completed_at and not workout_session.paused_at %}<form method="POST" action="{{ url_for('pause_workout', session_id=workout_session.id) }}"><input type="hidden" name="_csrf_token" value="{{ csrf_token() }}"><button class="btn secondary" type="submit">中断して記録を残す</button></form>{% endif %}
+    <form method="POST" action="{{ url_for('delete_workout', session_id=workout_session.id) }}" onsubmit="return confirm('このトレーニングとセット記録をまとめて削除しますか？');"><input type="hidden" name="_csrf_token" value="{{ csrf_token() }}"><button class="btn danger" type="submit">トレーニングを削除</button></form>
+</div>
+
 <p style="text-align: center; margin: 22px 0;"><a href="{{ url_for('calendar_page') }}" style="color: #38bdf8;">カレンダーへ戻る</a> · <a href="{{ url_for('menu_page') }}" style="color: #38bdf8;">メニューを見る</a></p>
+{{ editor_script() }}
+<script>
+(() => {
+    const status = document.getElementById('workout-save-status');
+    let busy = false;
+    let statusTimer;
+    const announce = (message, error = false) => {
+        clearTimeout(statusTimer);
+        status.textContent = message;
+        status.style.background = error ? '#7f1d1d' : '#14532d';
+        status.hidden = false;
+        if (!error) statusTimer = setTimeout(() => { status.hidden = true; }, 5000);
+    };
+    const save = async (forms, url, data) => {
+        if (busy) return;
+        for (const form of forms) if (!form.reportValidity()) return;
+        const anchor = [...document.querySelectorAll('[data-set-row]')].find(row => {
+            const rect = row.getBoundingClientRect();
+            return rect.bottom > 0 && rect.top < window.innerHeight;
+        });
+        const before = anchor?.getBoundingClientRect().top;
+        const buttons = [...document.querySelectorAll('[data-save-selected], button[type="submit"]')]
+            .filter(button => !button.disabled);
+        busy = true;
+        buttons.forEach(button => { button.disabled = true; });
+        forms.forEach(form => { form.inert = true; form.setAttribute('aria-busy', 'true'); });
+        announce('保存しています…');
+        try {
+            const response = await fetch(url, {
+                method: 'POST', body: data,
+                headers: { 'X-Requested-With': 'fetch', 'Accept': 'application/json' }
+            });
+            if (!response.headers.get('content-type')?.includes('application/json')) {
+                throw new Error('保存結果を確認できませんでした。入力は残っています。再読み込み後に記録済みか確認してください。');
+            }
+            const result = await response.json();
+            if (!response.ok) throw new Error(result.error || '保存できませんでした。入力内容を確認してください。');
+            for (const saved of result.saved) {
+                const row = document.getElementById(saved.row_id);
+                if (row) row.querySelector('[data-set-content]').innerHTML = saved.html;
+            }
+            if (anchor?.isConnected) window.scrollBy(0, anchor.getBoundingClientRect().top - before);
+            document.querySelectorAll('[data-select-item]').forEach(control => { control.checked = false; });
+            announce(result.message);
+        } catch (error) {
+            announce(error instanceof TypeError
+                ? '通信が途切れ、保存結果を確認できませんでした。入力は残っています。再読み込み後に記録済みか確認してください。'
+                : error.message, true);
+        } finally {
+            forms.forEach(form => { form.inert = false; form.removeAttribute('aria-busy'); });
+            buttons.forEach(button => { button.disabled = false; });
+            busy = false;
+        }
+    };
+    document.addEventListener('submit', event => {
+        const form = event.target;
+        if (!form.matches('[data-set-entry], [data-set-edit]')) return;
+        event.preventDefault();
+        save([form], form.action, new FormData(form));
+    });
+    document.addEventListener('change', event => {
+        const control = event.target.closest('[data-select-item]');
+        if (!control) return;
+        document.querySelectorAll('[data-set-entry]').forEach(form => {
+            if (form.dataset.itemId === control.dataset.selectItem) {
+                form.querySelector('[data-bulk-select]').checked = control.checked;
+            }
+        });
+    });
+    document.addEventListener('click', event => {
+        const button = event.target.closest('[data-save-selected]');
+        if (!button || busy) return;
+        const forms = [...document.querySelectorAll('[data-set-entry]')].filter(form =>
+            (!button.dataset.itemId || form.dataset.itemId === button.dataset.itemId)
+            && form.querySelector('[data-bulk-select]').checked);
+        if (!forms.length) { announce('保存するセットの「まとめて記録する」にチェックしてください。', true); return; }
+        const data = new FormData();
+        data.set('_csrf_token', forms[0].querySelector('[name="_csrf_token"]').value);
+        data.set('rows', JSON.stringify(forms.map(form => Object.fromEntries(new FormData(form)))));
+        save(forms, {{ url_for('add_workout_sets_bulk', session_id=workout_session.id)|tojson }}, data);
+    });
+})();
+</script>
+<script>
+(() => {
+    const form = document.getElementById('add-existing-exercise');
+    if (!form) return;
+    const select = form.querySelector('[name="exercise_id"]');
+    const search = document.getElementById('workout-exercise-search');
+    const options = [...select.options].filter(option => option.value).map(option => option.cloneNode(true));
+    const normalize = value => value.normalize('NFKC').toLocaleLowerCase().trim();
+    search.addEventListener('keydown', event => { if (event.key === 'Enter') event.preventDefault(); });
+    search.addEventListener('input', () => {
+        const selected = select.value;
+        const found = options.filter(option => normalize(option.textContent).includes(normalize(search.value)));
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = found.length ? '種目を選択してください' : '該当する種目がありません';
+        select.replaceChildren(placeholder, ...found.map(option => option.cloneNode(true)));
+        select.value = found.some(option => option.value === selected) ? selected : '';
+    });
+})();
+</script>
 {% endblock %}

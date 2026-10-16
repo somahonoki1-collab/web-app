@@ -1,7 +1,8 @@
 {% extends "base.html" %}
+{% from "recording_fields.html" import editor, editor_script with context %}
 
 {% block content %}
-<style>.card input, .card select, .card a { box-sizing: border-box; } .card .form-group, .card form > div > div { min-width: 0; }</style>
+<style>.card .field-label { flex:1; min-width:100px; } .card input, .card select, .card a { box-sizing: border-box; } .card .form-group, .card form > div > div { min-width: 0; }</style>
 <div class="app-header">
     <h1 style="font-size: 28px; font-weight: 900; text-align: center; background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">EDIT LOG</h1>
     <p style="text-align: center; color: #94a3b8; font-size: 14px;">記録の修正</p>
@@ -28,17 +29,10 @@
             </select>
         </div>
         
-        <div style="display: flex; gap: 15px; margin-bottom: 20px;">
-            <div style="flex: 1;">
-                <label style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 8px; color: #94a3b8;">🏋️ 重量 (kg)</label>
-                <input type="number" min="0.1" max="1000" step="0.5" name="weight" required value="{{ form_data.get('weight', log.weight) }}" style="width: 100%; padding: 14px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; font-size: 16px;">
-            </div>
-            <div style="flex: 1;">
-                <label style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 8px; color: #94a3b8;">🔄 回数 (回)</label>
-                <input type="number" min="1" max="100" name="reps" required value="{{ form_data.get('reps', log.reps) }}" style="width: 100%; padding: 14px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; font-size: 16px;">
-            </div>
+        <p class="muted">このセットの記録方式も変更できます。種目の初期設定には影響しません。</p>
+        <div style="display:flex; flex-wrap:wrap; gap:12px; margin-bottom:20px;">
+            {{ editor(form_data.get('recording_mode', log.recording_mode), form_data, log) }}
         </div>
-        
         <div class="form-group" style="margin-bottom: 20px;">
             <label style="display: block; font-size: 13px; font-weight: 700; margin-bottom: 8px; color: #94a3b8;">🎯 重量を増やす回数の上限 (回)</label>
             <input type="number" min="1" max="100" name="target_reps" required {% if log.session_id %}readonly{% endif %} value="{{ edit_upper if log.session_id else form_data.get('target_reps', edit_upper) }}" style="width: 100%; padding: 14px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: #fff; font-size: 16px;">
@@ -48,4 +42,5 @@
         <a href="/" style="display: block; text-align: center; width: 100%; padding: 16px; color: #94a3b8; font-size: 14px; text-decoration: none; margin-top: 15px;">キャンセルして戻る</a>
     </form>
 </div>
+{{ editor_script() }}
 {% endblock %}

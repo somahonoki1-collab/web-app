@@ -1,0 +1,52 @@
+{% extends "growth/layout.html" %}
+{% block growth_content %}
+<header class="growth-header">
+    <h1>成長対戦</h1>
+    <p class="muted">仲間と期間を決めて、筋力の成長を競おう。</p>
+</header>
+
+<section class="panel">
+    <h2 class="growth-title">参加しているグループ</h2>
+    {% for group in groups %}
+    <a class="growth-link growth-box" style="display:block; margin-top:10px;" href="{{ url_for('growth.group_page', group_id=group.id) }}">
+        <strong style="overflow-wrap:anywhere;">{{ group.name }}</strong>
+        <span class="growth-sub">{% if group.owner_id == user.id %}管理者 · {% endif %}対戦と結果を見る →</span>
+    </a>
+    {% else %}
+    <p class="muted">まずグループを作るか、仲間の招待コードで参加してください。複数のグループに所属できます。</p>
+    {% endfor %}
+</section>
+
+<section class="panel">
+    <h2 class="growth-title">グループを作る</h2>
+    <form action="{{ url_for('growth.create_group') }}" method="POST" class="growth-stack">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+        <label><span class="field-label">グループ名</span>
+            <input class="field" type="text" name="name" maxlength="60" placeholder="例：いつもの筋トレ仲間" required>
+        </label>
+        <button class="btn" type="submit">グループを作成</button>
+    </form>
+</section>
+
+<section class="panel">
+    <h2 class="growth-title">招待コードで参加</h2>
+    <form action="{{ url_for('growth.join_group') }}" method="POST" class="growth-stack">
+        <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+        <label><span class="field-label">12文字の招待コード</span>
+            <input class="field" type="text" name="invite_code" minlength="12" maxlength="12" autocapitalize="characters" autocomplete="off" spellcheck="false" placeholder="仲間にコードを教えてもらう" required>
+        </label>
+        <button class="btn secondary" type="submit">グループに参加</button>
+    </form>
+</section>
+
+<section class="panel">
+    <h2 class="growth-title">成長対戦の流れ</h2>
+    <ol class="growth-muted-list">
+        <li>グループを作り、仲間を招待する。</li>
+        <li>管理者が種目と、それぞれの1〜12カ月の期間を決める。</li>
+        <li>いつもどおりトレーニングを記録する。</li>
+        <li>終了後にポイント・順位・成長グラフを見る。</li>
+    </ol>
+    <p class="growth-help">開始水準が高い人の成長に緩やかな補正を付ける初版の指標です。増加した重量も一緒に表示します。</p>
+</section>
+{% endblock %}

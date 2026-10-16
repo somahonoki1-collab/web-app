@@ -22,6 +22,10 @@
                 <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="status" value="recovered">
                 <button class="btn" type="submit">今日抜けた</button>
             </form>
+            <form method="POST" action="{{ url_for('delete_recovery_check', check_id=check.id) }}" onsubmit="return confirm('この部位・トレーニング日の回復チェックを削除しますか？');">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                <button class="btn danger" type="submit">削除</button>
+            </form>
         </div>
     </div>
     {% else %}<p class="muted">確認待ちの部位はありません。トレーニングを記録すると、ここに部位が表示されます。</p>{% endfor %}

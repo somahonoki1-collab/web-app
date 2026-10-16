@@ -1,0 +1,55 @@
+{% macro mode_select(selected='weight') %}
+<label class="field-label">記録方式<select class="field" name="recording_mode">{% for key, title in recording_modes.items() %}<option value="{{ key }}" {% if key == selected %}selected{% endif %}>{{ title }}</option>{% endfor %}</select></label>
+{% endmacro %}
+
+{% macro editor(mode, values={}, fallback=none) %}
+{% set mode = mode if mode in recording_modes else 'weight' %}
+<div class="recording-editor" data-recording-editor>
+    {{ mode_select(mode) }}
+    <fieldset data-modes="weight negative" {% if mode not in ['weight', 'negative'] %}hidden disabled{% endif %} style="border:0; padding:0; margin:0; min-width:0;">
+        <label class="field-label"><span data-weight-label>{{ 'ネガティブの重量' if mode == 'negative' else '重量' }}</span> (kg)<input class="field" type="number" name="weight" min="0.1" max="1000" step="0.1" value="{{ values.get('weight', fallback.weight if fallback else '') or '' }}" required></label>
+    </fieldset>
+    <fieldset data-modes="bodyweight" {% if mode != 'bodyweight' %}hidden disabled{% endif %} style="border:0; padding:0; margin:0; min-width:0;">
+        <label class="field-label">体重 (kg)<input class="field" type="number" name="body_weight" min="0.1" max="1000" step="0.1" value="{{ values.get('body_weight', fallback.body_weight if fallback else '') or '' }}" required></label>
+        <div style="display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px;">
+            <label class="field-label">加重 (kg)<input class="field" type="number" name="added_weight" min="0" max="1000" step="0.1" value="{{ values.get('added_weight', fallback.added_weight if fallback else 0) or 0 }}" required></label>
+            <label class="field-label">補助 (kg)<input class="field" type="number" name="assistance_weight" min="0" max="1000" step="0.1" value="{{ values.get('assistance_weight', fallback.assistance_weight if fallback else 0) or 0 }}" required></label>
+        </div>
+        <p class="muted">加重・補助なしは0kg。記録上の重量＝体重＋加重−補助。</p>
+    </fieldset>
+    <label class="field-label">回数<input class="field" type="number" name="reps" min="1" max="100" value="{{ values.get('reps', fallback.reps if fallback else 8) }}" required></label>
+</div>
+{% endmacro %}
+
+{% macro editor_script() %}
+<script>
+(() => {
+    const update = editor => {
+        const mode = editor.querySelector('[name="recording_mode"]').value;
+        editor.querySelectorAll('fieldset[data-modes]').forEach(group => {
+            group.hidden = !group.dataset.modes.split(' ').includes(mode);
+            group.disabled = group.hidden;
+        });
+        editor.querySelector('[data-weight-label]').textContent = mode === 'negative' ? 'ネガティブの重量' : '重量';
+    };
+    document.querySelectorAll('[data-recording-editor]').forEach(update);
+    document.addEventListener('change', event => {
+        if (event.target.name !== 'recording_mode') return;
+        const editor = event.target.closest('[data-recording-editor]');
+        if (editor) update(editor);
+    });
+})();
+</script>
+{% endmacro %}
+
+{% macro inputs(mode, values={}, fallback=none) %}
+<input type="hidden" name="recording_mode" value="{{ mode }}">
+{% if mode == 'bodyweight' %}
+<label class="field-label">体重 (kg)<input class="field" type="number" name="body_weight" min="0.1" max="1000" step="0.1" value="{{ values.get('body_weight', fallback.body_weight if fallback else '') or '' }}" required></label>
+<label class="field-label">加重 (kg)<input class="field" type="number" name="added_weight" min="0" max="1000" step="0.1" value="{{ values.get('added_weight', fallback.added_weight if fallback else 0) or 0 }}" required></label>
+<label class="field-label">補助 (kg)<input class="field" type="number" name="assistance_weight" min="0" max="1000" step="0.1" value="{{ values.get('assistance_weight', fallback.assistance_weight if fallback else 0) or 0 }}" required></label>
+{% elif mode != 'reps' %}
+<label class="field-label">{{ 'ネガティブの重量' if mode == 'negative' else '重量' }} (kg)<input class="field" type="number" name="weight" min="0.1" max="1000" step="0.1" value="{{ values.get('weight', fallback.weight if fallback else '') or '' }}" required></label>
+{% endif %}
+<label class="field-label">回数<input class="field" type="number" name="reps" min="1" max="100" value="{{ values.get('reps', fallback.reps if fallback else 8) }}" required></label>
+{% endmacro %}

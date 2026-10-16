@@ -1,0 +1,221 @@
+{% extends "growth/layout.html" %}
+{% block growth_content %}
+<p class="muted">採点対象は「重量＋回数」の記録です。自重・回数のみ・ネガティブの記録は混ぜて集計しません。</p>
+<header class="growth-header">
+    <a class="growth-link" href="{{ url_for('growth.group_page', group_id=group.id) }}">‹ {{ group.name }}</a>
+    <h1 style="overflow-wrap:anywhere;">{{ challenge.name }}</h1>
+    <p class="muted">{{ challenge.started_at.strftime('%Y-%m-%d %H:%M') }}開始（日本時間）</p>
+</header>
+
+{% for card in cards %}
+{% set round = card.round %}
+<section class="panel" id="round-{{ round.id }}">
+    <div style="display:flex; gap:8px; justify-content:space-between; align-items:start;">
+        <h2 class="growth-title">{{ round.exercise_name }}</h2>
+        <span class="growth-badge {{ 'done' if round.finalized_at else 'live' }}" style="white-space:nowrap;">{{ '結果発表' if round.finalized_at else '対戦中' }}</span>
+    </div>
+    <p class="growth-help">{{ round.months }}カ月 · {{ round.starts_at.strftime('%Y-%m-%d %H:%M') }} 〜 {{ round.ends_at.strftime('%Y-%m-%d %H:%M') }}未満</p>
+    <p class="growth-help">採点：{% if round.metric == 'estimated_1rm' %}推定1RM（1〜12回）{% else %}{{ round.target_reps }}回で挙げた重量{% endif %} · 配点基準 {{ '%g'|format(round.reference_weight) }}kg</p>
+
+    {% if card.mine %}
+        {% set mine = card.mine.participant %}
+        {% if not round.finalized_at and not card.mine.first %}
+        <div class="growth-box">
+            <h3 class="growth-title" style="font-size:15px;">自分の記録に使う種目</h3>
+            <form action="{{ url_for('growth.map_exercise', participant_id=mine.id) }}" method="POST" class="growth-stack">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token() }}">
+                <label><span class="field-label">同じ種目・器具に対応する自分の種目</span>
+                    <select class="field" name="exercise_id" required>
+                        <option value="">種目を選択</option>
+                        {% for exercise in exercises if exercise.recording_mode == 'weight' %}<option value="{{ exercise.id }}" {% if exercise.id == mine.exercise_id %}selected{% endif %}>{{ exercise.name }}</option>{% endfor %}
+                    </select>
+                </label>
+                <button class="btn secondary" type="submit">この種目で記録する</button>
+            </form>
+            {% if mine.exercise_id %}
+            <p class="growth-help">「{{ mine.exercise.name }}」の次の対象トレーニングを記録してください。メニューのトレーニングは完了後に反映します。</p>
+            {% else %}
+            <p class="growth-help">種目名が一致しないため、対応する自分の種目を選んでください。種目がなければ<a class="growth-link" href="{{ url_for('menu_page') }}">メニューで追加</a>できます。</p>
+            {% endif %}
+        </div>
+        {% elif card.mine.first and not round.finalized_at %}
+        <div class="growth-box">
+            <span class="field-label">自分の開始成績</span>
+            <strong>{{ '%.2f'|format(card.mine.baseline) }}kg</strong>
+            <span class="growth-sub">{{ card.mine.first.observed_at.strftime('%Y-%m-%d') }} · {{ '%g'|format(card.mine.first.weight) }}kg × {{ card.mine.first.reps }}回</span>
+            {% if card.mine.last %}<p class="growth-help">次の対象トレーニングを記録すると、終了成績と暫定ポイントが更新されます。</p>
+            {% else %}<p class="growth-help">開始成績を登録しました。次の対象トレーニングから成長ポイントが表示されます。</p>{% endif %}
+        </div>
+        {% endif %}
+    {% else %}
+    <p class="growth-help">この対戦の開始後にグループへ参加したため、今回は順位の対象に含まれません。</p>
+    {% endif %}
+
+    <h3 class="growth-title" style="font-size:16px; margin-top:20px;">{{ '確定順位' if round.finalized_at else '暫定順位' }}</h3>
+    <p class="growth-help">横にスクロールすると開始・終了の記録を確認できます。</p>
+    <div class="growth-table-scroll" tabindex="0" role="region" aria-label="{{ round.exercise_name }}の順位">
+    <table class="growth-table">
+        <thead><tr><th>順位</th><th>メンバー</th><th>開始成績</th><th>{{ '終了成績' if round.finalized_at else '最新成績' }}</th><th>実重量の増減</th><th>ポイント</th></tr></thead>
+        <tbody>
+        {% for row in card.rows %}
+        <tr class="{{ 'mine' if row.participant.user_id == user.id else '' }}">
+            <td class="growth-number">{{ row.rank if row.rank is not none else '—' }}</td>
+            <td style="overflow-wrap:anywhere; max-width:110px;">{{ row.participant.username }}{% if row.participant.user_id == user.id %}<span class="growth-sub">自分</span>{% endif %}</td>
+            <td>
+                {% if row.first %}
+                <span class="growth-number">{{ '%.2f'|format(row.baseline) }}kg</span>
+                <span class="growth-sub">{{ row.first.observed_at.strftime('%m/%d') }}<br>{{ '%g'|format(row.first.weight) }}kg × {{ row.first.reps }}回</span>
+                {% else %}—{% endif %}
+            </td>
+            <td>
+                {% if row.last %}
+                <span class="growth-number">{{ '%.2f'|format(row.final_performance) }}kg</span>
+                <span class="growth-sub">{{ row.last.observed_at.strftime('%m/%d') }}<br>{{ '%g'|format(row.last.weight) }}kg × {{ row.last.reps }}回</span>
+                {% else %}—{% endif %}
+            </td>
+            <td>{% if row.weight_gain is not none %}<span class="growth-number">{{ '%+.1f'|format(row.weight_gain) }}kg</span>
+                {% if round.metric == 'estimated_1rm' %}<span class="growth-sub">推定1RM<br>{{ '%+.2f'|format(row.performance_gain) }}kg</span>{% endif %}
+                {% else %}—{% endif %}</td>
+            <td>{% if row.points is not none %}<span class="points">{{ '%.2f'|format(row.points) }}pt</span>
+                {% else %}<span class="growth-sub">{% if row.status == 'baseline_only' %}開始記録のみ{% elif not row.participant.exercise_id %}種目未設定{% else %}対象記録なし{% endif %}</span>{% endif %}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    </div>
+    <p class="growth-help">2回以上の対象トレーニングがある人を順位に入れます。同点は同順位、減少した場合はマイナスポイントです。</p>
+    {% if round.metric == 'estimated_1rm' %}<p class="growth-help">実重量が同じでも回数が増えれば推定1RMとポイントは上がります。実重量の増減には異なる回数のセットの比較も含まれます。</p>{% endif %}
+
+    <details class="growth-rule">
+        <summary>この対戦の採点ルール</summary>
+        <p>ポイント＝100 ×（終了成績 − 開始成績）÷ {{ '%g'|format(round.reference_weight) }} × 補正倍率</p>
+        <p>補正倍率＝√（開始成績 ÷ {{ '%g'|format(round.reference_weight) }}）。{{ '%g'|format(round.factor_lower) }}〜{{ '%g'|format(round.factor_upper) }}に制限します。</p>
+        {% if round.metric == 'estimated_1rm' %}
+        <p>推定1RM＝重量 ×（1 ＋ 回数 ÷ {{ '%g'|format(round.rm_divisor) }}）。1回のセットは実重量を使います。1〜12回のセットのうち最高の推定値を採用します。最大筋力の目安です。</p>
+        {% else %}<p>{{ round.target_reps }}回のセットのうち、最も重い重量を採用します。ほかの回数のセットは対戦の対象外です。</p>{% endif %}
+        <p>開始成績は対戦開始後の最初、終了成績は期間内の最後の対象トレーニングです。ホームの記録は保存時、メニューのトレーニングは完了時に集計します。開始前から実施中だったトレーニングは含めません。</p>
+        <p>期間中の記録修正・削除は暫定結果に反映します。終了後の修正・削除では発表済みの結果は変わりません。</p>
+        <p>初版の競争ルールです。体格・年齢・経験の補正は含みません。式のバージョン：{{ round.formula_version }}</p>
+    </details>
+
+    {% if round.finalized_at %}
+    <div class="growth-plot-panel">
+        <h3 class="growth-title" style="font-size:16px;">期間中の成長ポイント推移</h3>
+        <div class="growth-chart-host" data-round-id="{{ round.id }}"></div>
+        <p class="growth-help">同じ開始成績・配点基準で各トレーニングを採点した推移です。点を選ぶとその日の記録を表示します。</p>
+        <p class="growth-help">カレンダーと比較して振り返れます。推移だけで、トレーニング方法の効果を断定することはできません。</p>
+        {% for row in card.rows %}
+        {% if row.observations %}
+        <details class="growth-rule growth-records">
+            <summary>{{ row.participant.username }}の期間内の記録（{{ row.observations|length }}回）</summary>
+            {% for entry in row.history %}
+            {% set observation = entry.observation %}
+            <div class="growth-record-row">
+                {% if row.participant.user_id == user.id %}<a class="growth-link" href="{{ url_for('calendar_page', month=observation.recorded_at.strftime('%Y-%m')) }}#day-{{ observation.recorded_at.strftime('%Y-%m-%d') }}">{{ observation.observed_at.strftime('%Y-%m-%d') }}</a>
+                {% else %}{{ observation.observed_at.strftime('%Y-%m-%d') }}{% endif %}
+                · {{ '%.2f'|format(entry.points) }}pt · {{ '%g'|format(observation.weight) }}kg × {{ observation.reps }}回 · 成績 {{ '%.2f'|format(observation.performance) }}kg
+                {% if observation.recorded_at.date() != observation.observed_at.date() %}<span class="growth-sub">セットの記録日：{{ observation.recorded_at.strftime('%Y-%m-%d') }}</span>{% endif %}
+            </div>
+            {% endfor %}
+        </details>
+        {% endif %}
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="growth-box" style="margin-top:16px;">
+        <p class="growth-help">{{ round.ends_at.strftime('%Y-%m-%d %H:%M') }}に期間が終了します。終了後にこの画面を開くと結果を発表し、推移グラフが表示されます。</p>
+    </div>
+    {% endif %}
+</section>
+{% endfor %}
+
+<p><a class="btn secondary" href="{{ url_for('calendar_page') }}">自分のカレンダーを見る</a></p>
+<script>
+(() => {
+    const data = {{ chart_data|tojson }};
+    const calendarBase = {{ url_for('calendar_page')|tojson }};
+    const colors = ['#38bdf8', '#fbbf24', '#a78bfa', '#34d399', '#fb7185', '#fb923c', '#e879f9', '#cbd5e1'];
+    const ns = 'http://www.w3.org/2000/svg';
+    const create = (tag, attributes = {}, text = '') => {
+        const element = document.createElementNS(ns, tag);
+        Object.entries(attributes).forEach(([key, value]) => element.setAttribute(key, value));
+        if (text) element.textContent = text;
+        return element;
+    };
+    document.querySelectorAll('.growth-chart-host').forEach(host => {
+        const chart = data[host.dataset.roundId];
+        if (!chart || !chart.series.length) {
+            const empty = document.createElement('p');
+            empty.className = 'muted';
+            empty.textContent = '期間内に対象の記録がなかったため、グラフはありません。';
+            host.append(empty);
+            return;
+        }
+        const start = new Date(chart.starts_at).getTime();
+        const end = new Date(chart.ends_at).getTime();
+        const values = chart.series.flatMap(series => series.points.map(point => point.value));
+        let low = values.reduce((minimum, value) => Math.min(minimum, value), 0);
+        let high = values.reduce((maximum, value) => Math.max(maximum, value), 0);
+        const padding = Math.max(1, (high - low) * .12);
+        low -= padding;
+        high += padding;
+        const chartWidth = Math.max(320, host.clientWidth);
+        const left = 64, right = chartWidth - 22, top = 24, bottom = 248;
+        const x = timestamp => left + (timestamp - start) / (end - start) * (right - left);
+        const y = value => bottom - (value - low) / (high - low) * (bottom - top);
+        const svg = create('svg', {viewBox: `0 0 ${chartWidth} 295`, class: 'growth-chart', role: 'group', 'aria-label': '成長ポイント推移。点を選択すると記録を表示'});
+        const dateLabel = new Intl.DateTimeFormat('en-US', {timeZone: 'Asia/Tokyo', month: 'numeric', day: 'numeric'});
+        for (let index = 0; index <= 4; index++) {
+            const value = low + (high - low) * index / 4;
+            svg.append(create('line', {x1: left, y1: y(value), x2: right, y2: y(value), stroke: '#334155'}));
+            svg.append(create('text', {x: left - 9, y: y(value) + 4, 'text-anchor': 'end', fill: '#94a3b8', 'font-size': 12}, value.toFixed(1)));
+            const timestamp = start + (end - start) * index / 4;
+            svg.append(create('text', {x: x(timestamp), y: bottom + 23, 'text-anchor': 'middle', fill: '#94a3b8', 'font-size': 12}, dateLabel.format(new Date(timestamp))));
+        }
+        svg.append(create('line', {x1: left, y1: y(0), x2: right, y2: y(0), stroke: '#64748b', 'stroke-dasharray': '4 4'}));
+        svg.append(create('text', {x: left, y: 14, fill: '#94a3b8', 'font-size': 12}, 'ポイント (pt)'));
+        const legend = document.createElement('div');
+        legend.className = 'growth-legend';
+        const detail = document.createElement('div');
+        detail.className = 'growth-box growth-help';
+        detail.style.marginTop = '12px';
+        detail.hidden = true;
+        const description = document.createElement('p');
+        const calendarLink = document.createElement('a');
+        calendarLink.className = 'growth-link';
+        calendarLink.textContent = 'この日の自分のカレンダーを見る →';
+        detail.append(description, calendarLink);
+        chart.series.forEach((series, index) => {
+            const color = colors[index % colors.length];
+            const positions = series.points.map(point => [x(new Date(point.date).getTime()), y(point.value)]);
+            if (positions.length > 1) svg.append(create('polyline', {points: positions.map(point => point.join(',')).join(' '), fill: 'none', stroke: color, 'stroke-width': 2.5}));
+            series.points.forEach((point, pointIndex) => {
+                const [cx, cy] = positions[pointIndex];
+                const label = `${series.name} ${point.day}: ${point.value.toFixed(2)}pt、${point.weight}kg × ${point.reps}回`;
+                const dot = create('circle', {cx, cy, r: 5, fill: color, stroke: '#0f172a', 'stroke-width': 1.5, tabindex: 0, role: 'button', 'aria-label': label});
+                dot.append(create('title', {}, label));
+                const select = () => {
+                    description.textContent = `${label}（成績 ${point.performance.toFixed(2)}kg）`;
+                    calendarLink.hidden = !series.mine;
+                    calendarLink.href = `${calendarBase}?month=${point.calendar_day.slice(0, 7)}#day-${point.calendar_day}`;
+                    calendarLink.textContent = `${point.calendar_day}の自分のカレンダーを見る →`;
+                    detail.hidden = false;
+                };
+                dot.addEventListener('click', select);
+                dot.addEventListener('keydown', event => {
+                    if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); select(); }
+                });
+                svg.append(dot);
+            });
+            const item = document.createElement('span');
+            const dot = document.createElement('i');
+            dot.className = 'growth-dot';
+            dot.style.backgroundColor = color;
+            item.append(dot, document.createTextNode(series.name));
+            legend.append(item);
+        });
+        host.append(svg, legend, detail);
+    });
+})();
+</script>
+{% endblock %}
